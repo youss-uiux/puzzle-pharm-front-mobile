@@ -27,6 +27,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (!isLoading && session && profile) {
       if (profile.role === 'AGENT') {
+        console.log('Redirection vers dashboard agent');
         router.replace('/(agent)/dashboard');
       } else {
         router.replace('/(client)/home');

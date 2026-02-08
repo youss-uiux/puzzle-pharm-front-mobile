@@ -8,7 +8,8 @@ import {
   H3,
   ScrollView,
   Card,
-  Spinner
+  Spinner,
+  View
 } from 'tamagui';
 import {
   Clock,
@@ -18,6 +19,7 @@ import {
   Users
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../_layout';
 
@@ -125,27 +127,30 @@ export default function DashboardScreen() {
   }) => (
     <Card
       flex={1}
-      elevation="$1"
-      padding="$3"
-      borderRadius="$3"
-      backgroundColor="white"
+      padding="$4"
+      borderRadius={16}
+      backgroundColor="#FFFFFF"
+      borderWidth={1}
+      borderColor="#E2E8F0"
     >
       <XStack justifyContent="space-between" alignItems="flex-start">
         <YStack>
-          <Text color="$gray11" fontSize="$2" marginBottom="$1">
+          <Text color="#64748B" fontSize={13} marginBottom={4}>
             {title}
           </Text>
-          <Text fontWeight="700" fontSize={24} color="$gray12">
+          <Text fontWeight="700" fontSize={28} color="#1E293B">
             {value}
           </Text>
         </YStack>
-        <YStack
+        <View
           backgroundColor={bgColor}
-          padding="$2"
-          borderRadius="$2"
+          padding={10}
+          borderRadius={12}
+          alignItems="center"
+          justifyContent="center"
         >
-          <Icon size={20} color={color} />
-        </YStack>
+          <Icon size={22} color={color} />
+        </View>
       </XStack>
     </Card>
   );
@@ -176,27 +181,28 @@ export default function DashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F1F5F9' }}>
+      <StatusBar style="dark" />
       <ScrollView
         flex={1}
-        backgroundColor="$background"
+        backgroundColor="#F1F5F9"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {/* Header */}
         <YStack padding="$4" paddingBottom="$2">
-          <Text color="$gray11" fontSize="$4">
+          <Text color="#64748B" fontSize={16}>
             {getGreeting()},
           </Text>
-          <H2 color="$gray12">
+          <H2 color="#1E293B">
             Agent {profile?.full_name || ''} 🎧
           </H2>
         </YStack>
 
         {loading ? (
           <YStack alignItems="center" padding="$8">
-            <Spinner size="large" color="$green10" />
+            <Spinner size="large" color="#10B981" />
           </YStack>
         ) : (
           <>
@@ -240,75 +246,80 @@ export default function DashboardScreen() {
             {/* Demandes récentes */}
             <YStack padding="$4" paddingTop="$0">
               <XStack justifyContent="space-between" alignItems="center" marginBottom="$3">
-                <H3 color="$gray12">Demandes récentes</H3>
-                <XStack
-                  backgroundColor="$red10"
-                  paddingHorizontal="$2"
-                  paddingVertical="$1"
-                  borderRadius="$2"
-                >
-                  <Text color="white" fontSize="$2" fontWeight="600">
-                    {stats.en_attente} nouvelle{stats.en_attente > 1 ? 's' : ''}
-                  </Text>
-                </XStack>
+                <H3 color="#1E293B">Demandes récentes</H3>
+                {stats.en_attente > 0 && (
+                  <View
+                    backgroundColor="#EF4444"
+                    paddingHorizontal={10}
+                    paddingVertical={4}
+                    borderRadius={12}
+                  >
+                    <Text color="white" fontSize={12} fontWeight="600">
+                      {stats.en_attente} nouvelle{stats.en_attente > 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                )}
               </XStack>
 
               {recentDemandes.length === 0 ? (
                 <Card
-                  padding="$4"
-                  backgroundColor="$gray2"
-                  borderRadius="$3"
+                  padding="$6"
+                  backgroundColor="#FFFFFF"
+                  borderRadius={16}
+                  borderWidth={1}
+                  borderColor="#E2E8F0"
                 >
                   <YStack alignItems="center">
-                    <Text fontSize={40} marginBottom="$2">📭</Text>
-                    <Text color="$gray11" textAlign="center">
+                    <Text fontSize={48} marginBottom="$2">📭</Text>
+                    <Text color="#64748B" textAlign="center">
                       Aucune demande pour le moment
                     </Text>
                   </YStack>
                 </Card>
               ) : (
-                <YStack gap="$2">
+                <YStack gap="$3">
                   {recentDemandes.map((demande) => {
                     const statusConfig = getStatusConfig(demande.status);
 
                     return (
                       <Card
                         key={demande.id}
-                        elevation="$1"
-                        padding="$3"
-                        borderRadius="$3"
-                        backgroundColor="white"
+                        padding="$4"
+                        borderRadius={16}
+                        backgroundColor="#FFFFFF"
+                        borderWidth={1}
+                        borderColor="#E2E8F0"
                       >
                         <XStack justifyContent="space-between" alignItems="flex-start">
                           <YStack flex={1}>
-                            <Text fontWeight="600" color="$gray12" fontSize="$4">
+                            <Text fontWeight="700" color="#1E293B" fontSize={16}>
                               {demande.medicament_nom}
                             </Text>
-                            <XStack gap="$1" alignItems="center" marginTop="$1">
-                              <Users size={12} color="#64748B" />
-                              <Text color="$gray11" fontSize="$2">
+                            <XStack gap="$2" alignItems="center" marginTop={6}>
+                              <Users size={14} color="#64748B" />
+                              <Text color="#64748B" fontSize={13}>
                                 {demande.profiles?.full_name || demande.profiles?.phone || 'Client'}
                               </Text>
                             </XStack>
-                            <Text color="$gray10" fontSize="$2" marginTop="$1">
+                            <Text color="#94A3B8" fontSize={12} marginTop={4}>
                               {formatTime(demande.created_at)}
                             </Text>
                           </YStack>
 
-                          <XStack
+                          <View
                             backgroundColor={statusConfig.bgColor}
-                            paddingHorizontal="$2"
-                            paddingVertical="$1"
-                            borderRadius="$2"
+                            paddingHorizontal={10}
+                            paddingVertical={4}
+                            borderRadius={8}
                           >
                             <Text
                               color={statusConfig.color}
-                              fontSize="$2"
+                              fontSize={12}
                               fontWeight="600"
                             >
                               {statusConfig.label}
                             </Text>
-                          </XStack>
+                          </View>
                         </XStack>
                       </Card>
                     );
