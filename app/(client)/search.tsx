@@ -254,39 +254,47 @@ export default function SearchScreen() {
                   Notre équipe vous répond en temps réel avec les pharmacies disponibles.
                 </Text>
               </Animated.View>
-            </ScrollView>
 
-            {/* Footer */}
-            <View style={styles.footer}>
-              <Pressable
-                onPress={submitDemande}
-                disabled={loading || !medicament.trim()}
-                style={({ pressed }) => [
-                  styles.submitButton,
-                  pressed && !loading && styles.submitButtonPressed,
-                  (!medicament.trim() || loading) && styles.submitButtonDisabled
+              {/* Submit Button */}
+              <Animated.View
+                style={[
+                  styles.buttonContainer,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.7) }]
+                  }
                 ]}
               >
-                <LinearGradient
-                  colors={medicament.trim() && !loading ? ['#00D9FF', '#0EA5E9'] : ['#374151', '#374151']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.submitButtonGradient}
+                <Pressable
+                  onPress={submitDemande}
+                  disabled={loading || !medicament.trim()}
+                  style={({ pressed }) => [
+                    styles.submitButton,
+                    pressed && !loading && styles.submitButtonPressed,
+                    (!medicament.trim() || loading) && styles.submitButtonDisabled
+                  ]}
                 >
-                  {loading ? (
-                    <>
-                      <Spinner size="small" color="#0A1628" />
-                      <Text style={styles.submitButtonText}>Envoi...</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Send size={20} color="#0A1628" />
-                      <Text style={styles.submitButtonText}>Envoyer la demande</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </Pressable>
-            </View>
+                  <LinearGradient
+                    colors={medicament.trim() && !loading ? ['#00D9FF', '#0EA5E9'] : ['#374151', '#374151']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.submitButtonGradient}
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner size="small" color="#0A1628" />
+                        <Text style={styles.submitButtonText}>Envoi...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={20} color="#0A1628" />
+                        <Text style={styles.submitButtonText}>Envoyer la demande</Text>
+                      </>
+                    )}
+                  </LinearGradient>
+                </Pressable>
+              </Animated.View>
+            </ScrollView>
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </SafeAreaView>
@@ -310,7 +318,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 100,
+    paddingBottom: 140,
     flexGrow: 1,
   },
 
@@ -437,13 +445,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Footer
-  footer: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: 'rgba(10, 22, 40, 0.95)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+  // Button Container
+  buttonContainer: {
+    marginTop: 24,
+    marginBottom: 20,
   },
   submitButton: {
     borderRadius: 16,

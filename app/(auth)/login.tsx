@@ -439,12 +439,12 @@ const styles = StyleSheet.create({
 
   // Form Card - Glassmorphism
   formCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 28,
-    padding: 28,
+    backgroundColor: Platform.OS === 'android' ? '#1E293B' : 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
+    padding: 24,
     marginBottom: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: Platform.OS === 'android' ? 2 : 1,
+    borderColor: Platform.OS === 'android' ? '#00D9FF' : 'rgba(255, 255, 255, 0.08)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -458,18 +458,18 @@ const styles = StyleSheet.create({
     }),
   },
   formHeader: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
   formTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   formSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.5)',
-    lineHeight: 22,
+    fontSize: 14,
+    color: Platform.OS === 'android' ? '#94A3B8' : 'rgba(255,255,255,0.5)',
+    lineHeight: 20,
   },
 
   // Input
@@ -479,39 +479,40 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Platform.OS === 'android' ? '#0F172A' : 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: Platform.OS === 'android' ? '#334155' : 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
   },
   countryCode: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
     gap: 8,
+    backgroundColor: Platform.OS === 'android' ? '#1E293B' : 'transparent',
   },
   flag: {
-    fontSize: 20,
+    fontSize: 22,
   },
   countryCodeText: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '600',
+    color: Platform.OS === 'android' ? '#E2E8F0' : 'rgba(255,255,255,0.7)',
+    fontWeight: '700',
   },
   inputDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: 2,
+    height: 32,
+    backgroundColor: Platform.OS === 'android' ? '#334155' : 'rgba(255, 255, 255, 0.1)',
   },
   input: {
     flex: 1,
-    height: 58,
+    height: 56,
     paddingHorizontal: 16,
-    fontSize: 18,
+    fontSize: 17,
     color: '#FFFFFF',
-    fontWeight: '500',
-    letterSpacing: 1,
+    fontWeight: '600',
   },
 
   // Submit Button
