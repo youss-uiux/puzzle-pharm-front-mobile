@@ -1,5 +1,7 @@
 import { Tabs } from 'expo-router';
 import { LayoutDashboard, ClipboardList, User } from 'lucide-react-native';
+import { Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 export default function AgentLayout() {
   return (
@@ -7,17 +9,35 @@ export default function AgentLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#10B981',
-        tabBarInactiveTintColor: '#64748B',
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E2E8F0',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          position: 'absolute',
+          backgroundColor: Platform.OS === 'ios' ? 'transparent' : 'rgba(10, 22, 40, 0.95)',
+          borderTopColor: 'rgba(255,255,255,0.08)',
+          borderTopWidth: 1,
+          height: Platform.OS === 'ios' ? 88 : 70,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+          paddingTop: 10,
+          elevation: 0,
         },
+        tabBarBackground: () =>
+          Platform.OS === 'ios' ? (
+            <BlurView
+              intensity={80}
+              tint="dark"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
+            />
+          ) : null,
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 11,
+          fontWeight: '600',
+          letterSpacing: 0.2,
         },
       }}
     >
@@ -26,7 +46,7 @@ export default function AgentLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
-            <LayoutDashboard size={size} color={color} />
+            <LayoutDashboard size={22} color={color} strokeWidth={2.5} />
           ),
         }}
       />
@@ -35,7 +55,7 @@ export default function AgentLayout() {
         options={{
           title: 'Demandes',
           tabBarIcon: ({ color, size }) => (
-            <ClipboardList size={size} color={color} />
+            <ClipboardList size={22} color={color} strokeWidth={2.5} />
           ),
         }}
       />
@@ -44,11 +64,10 @@ export default function AgentLayout() {
         options={{
           title: 'Profil',
           tabBarIcon: ({ color, size }) => (
-            <User size={size} color={color} />
+            <User size={22} color={color} strokeWidth={2.5} />
           ),
         }}
       />
     </Tabs>
   );
 }
-

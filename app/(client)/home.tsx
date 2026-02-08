@@ -1,21 +1,24 @@
-import { useEffect, useState } from 'react';
-import { RefreshControl, Linking } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
 import {
-  YStack,
-  XStack,
-  Text,
-  H2,
-  H4,
-  ScrollView,
-  Card,
-  Button,
-  Spinner
-} from 'tamagui';
-import { MapPin, Phone, Clock, ChevronRight } from 'lucide-react-native';
+  RefreshControl,
+  Linking,
+  StyleSheet,
+  Platform,
+  Pressable,
+  Animated,
+  Dimensions
+} from 'react-native';
+import { ScrollView, Spinner, View } from 'tamagui';
+import { MapPin, Phone, Clock, ArrowRight, Pill, Zap } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { supabase, PharmacieGarde } from '../../lib/supabase';
 import { useAuth } from '../_layout';
+import { Text } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const { profile } = useAuth();
@@ -23,6 +26,25 @@ export default function HomeScreen() {
   const [pharmacies, setPharmacies] = useState<PharmacieGarde[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const fetchPharmaciesGarde = async () => {
     try {
@@ -66,154 +88,518 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F1F5F9' }}>
-      <ScrollView
-        flex={1}
-        backgroundColor="#F1F5F9"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Header */}
-        <YStack padding="$4" paddingTop="$2">
-          <Text color="#64748B" fontSize={16}>
-            {getGreeting()},
-          </Text>
-          <H2 color="#1E293B">
-            {profile?.full_name || 'Bienvenue'} 👋
-          </H2>
-        </YStack>
+    <View style={styles.container}>
+      <StatusBar style="light" />
 
-        {/* Carte de recherche rapide */}
-        <YStack paddingHorizontal="$4" marginBottom="$4">
-          <Card
-            backgroundColor="#2563EB"
-            padding="$4"
-            borderRadius="$4"
-            pressStyle={{ scale: 0.98, opacity: 0.9 }}
-            onPress={() => router.push('/(client)/search')}
+      {/* Background */}
+      <LinearGradient
+        colors={['#0A1628', '#132F4C', '#0A1628']}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Decorative elements */}
+      <View style={styles.decorCircle1} />
+      <View style={styles.decorCircle2} />
+
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.scrollView}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#00D9FF"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <Animated.View
+            style={[
+              styles.header,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
           >
-            <XStack justifyContent="space-between" alignItems="center">
-              <YStack flex={1}>
-                <Text color="white" fontWeight="700" fontSize={18} marginBottom={4}>
-                  Chercher un médicament
-                </Text>
-                <Text color="rgba(255,255,255,0.8)" fontSize={14}>
-                  Trouvez votre médicament dans les pharmacies proches
-                </Text>
-              </YStack>
-              <YStack
-                backgroundColor="rgba(255,255,255,0.2)"
-                padding="$2"
-                borderRadius="$3"
-              >
-                <ChevronRight size={24} color="white" />
-              </YStack>
-            </XStack>
-          </Card>
-        </YStack>
-
-        {/* Section Pharmacies de garde */}
-        <YStack paddingHorizontal="$4">
-          <XStack justifyContent="space-between" alignItems="center" marginBottom="$3">
-            <XStack gap="$2" alignItems="center">
-              <YStack
-                backgroundColor="#10B981"
-                padding={6}
-                borderRadius={8}
-              >
-                <Clock size={16} color="white" />
-              </YStack>
-              <H4 color="#1E293B">Pharmacies de garde</H4>
-            </XStack>
-            <Text color="#64748B" fontSize={12}>
-              {new Date().toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long'
-              })}
+            <Text style={styles.greeting}>{getGreeting()},</Text>
+            <Text style={styles.userName}>
+              {profile?.full_name || 'Bienvenue'} 👋
             </Text>
-          </XStack>
+          </Animated.View>
 
-          {loading ? (
-            <YStack alignItems="center" padding="$8">
-              <Spinner size="large" color="#2563EB" />
-              <Text color="#64748B" marginTop="$2">
-                Chargement des pharmacies...
-              </Text>
-            </YStack>
-          ) : pharmacies.length === 0 ? (
-            <Card
-              padding="$4"
-              backgroundColor="#E2E8F0"
-              borderRadius={12}
+          {/* Search Card */}
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
+            }}
+          >
+            <Pressable
+              onPress={() => router.push('/(client)/search')}
+              style={({ pressed }) => [
+                styles.searchCard,
+                pressed && styles.searchCardPressed
+              ]}
             >
-              <YStack alignItems="center">
-                <Text fontSize={40} marginBottom="$2">🏥</Text>
-                <Text color="#64748B" textAlign="center">
+              <LinearGradient
+                colors={['#00D9FF', '#0EA5E9', '#0284C7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.searchCardGradient}
+              >
+                <View style={styles.searchCardContent}>
+                  <View style={styles.searchIconContainer}>
+                    <Pill size={28} color="#0A1628" />
+                  </View>
+                  <View style={styles.searchTextContainer}>
+                    <Text style={styles.searchTitle}>Chercher un médicament</Text>
+                    <Text style={styles.searchSubtitle}>
+                      Trouvez rapidement dans les pharmacies
+                    </Text>
+                  </View>
+                  <View style={styles.searchArrow}>
+                    <ArrowRight size={24} color="#0A1628" />
+                  </View>
+                </View>
+
+                {/* Decorative dots */}
+                <View style={styles.searchDots}>
+                  {[...Array(6)].map((_, i) => (
+                    <View key={i} style={styles.searchDot} />
+                  ))}
+                </View>
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
+
+          {/* Section Pharmacies de garde */}
+          <Animated.View
+            style={[
+              styles.section,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: Animated.multiply(slideAnim, 1.5) }]
+              }
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleContainer}>
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  style={styles.sectionIcon}
+                >
+                  <Clock size={14} color="#FFFFFF" />
+                </LinearGradient>
+                <View>
+                  <Text style={styles.sectionTitle}>Pharmacies de garde</Text>
+                  <Text style={styles.sectionDate}>
+                    {new Date().toLocaleDateString('fr-FR', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long'
+                    })}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.liveIndicator}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>LIVE</Text>
+              </View>
+            </View>
+
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <Spinner size="large" color="#00D9FF" />
+                <Text style={styles.loadingText}>Chargement...</Text>
+              </View>
+            ) : pharmacies.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyEmoji}>🏥</Text>
+                <Text style={styles.emptyTitle}>Aucune pharmacie</Text>
+                <Text style={styles.emptyText}>
                   Aucune pharmacie de garde trouvée pour aujourd'hui
                 </Text>
-              </YStack>
-            </Card>
-          ) : (
-            <YStack gap="$3" paddingBottom="$4">
-              {pharmacies.map((pharmacie) => (
-                <Card
-                  key={pharmacie.id}
-                  padding="$4"
-                  borderRadius={12}
-                  backgroundColor="#FFFFFF"
-                  borderWidth={1}
-                  borderColor="#E2E8F0"
-                  shadowColor="#000"
-                  shadowOffset={{ width: 0, height: 2 }}
-                  shadowOpacity={0.05}
-                  shadowRadius={4}
-                >
-                  <XStack justifyContent="space-between" alignItems="flex-start">
-                    <YStack flex={1} marginRight="$3">
-                      <Text fontWeight="700" fontSize={16} color="#1E293B" marginBottom={6}>
-                        {pharmacie.nom}
-                      </Text>
+              </View>
+            ) : (
+              <View style={styles.pharmaciesList}>
+                {pharmacies.map((pharmacie, index) => {
+                  const isLast = index === pharmacies.length - 1;
 
-                      <XStack gap="$2" alignItems="center" marginBottom={6}>
-                        <MapPin size={14} color="#64748B" />
-                        <Text color="#64748B" fontSize={14} numberOfLines={1} flex={1}>
-                          {pharmacie.adresse}
-                        </Text>
-                      </XStack>
-
-                      <YStack
-                        backgroundColor="#DBEAFE"
-                        alignSelf="flex-start"
-                        paddingHorizontal={10}
-                        paddingVertical={4}
-                        borderRadius={6}
-                      >
-                        <Text color="#2563EB" fontSize={12} fontWeight="600">
-                          {pharmacie.quartier}
-                        </Text>
-                      </YStack>
-                    </YStack>
-
-                    <Button
-                      size="$4"
-                      backgroundColor="#10B981"
-                      borderRadius={50}
-                      width={48}
-                      height={48}
-                      onPress={() => callPharmacy(pharmacie.telephone)}
-                      pressStyle={{ opacity: 0.8 }}
+                  return (
+                    <Animated.View
+                      key={pharmacie.id}
+                      style={[
+                        styles.pharmacieCard,
+                        isLast && styles.pharmacieCardLast,
+                        {
+                          opacity: fadeAnim,
+                          transform: [{
+                            translateY: Animated.multiply(
+                              slideAnim,
+                              1.5 + index * 0.2
+                            )
+                          }]
+                        }
+                      ]}
                     >
-                      <Phone size={20} color="white" />
-                    </Button>
-                  </XStack>
-                </Card>
-              ))}
-            </YStack>
-          )}
-        </YStack>
-      </ScrollView>
-    </SafeAreaView>
+                      <View style={styles.pharmacieContent}>
+                        <View style={styles.pharmacieHeader}>
+                          <View style={styles.pharmacieIndex}>
+                            <Text style={styles.pharmacieIndexText}>
+                              {String(index + 1).padStart(2, '0')}
+                            </Text>
+                          </View>
+                          <View style={styles.pharmacieInfo}>
+                            <Text style={styles.pharmacieName}>{pharmacie.nom}</Text>
+                            <View style={styles.pharmacieAddress}>
+                              <MapPin size={12} color="rgba(255,255,255,0.4)" />
+                              <Text style={styles.pharmacieAddressText} numberOfLines={1}>
+                                {pharmacie.adresse}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+
+                        <View style={styles.pharmacieFooter}>
+                          <View style={styles.pharmacieQuartier}>
+                            <Text style={styles.pharmacieQuartierText}>
+                              {pharmacie.quartier}
+                            </Text>
+                          </View>
+
+                          <Pressable
+                            onPress={() => callPharmacy(pharmacie.telephone)}
+                            style={({ pressed }) => [
+                              styles.callButton,
+                              pressed && styles.callButtonPressed
+                            ]}
+                          >
+                            <LinearGradient
+                              colors={['#10B981', '#059669']}
+                              style={styles.callButtonGradient}
+                            >
+                              <Phone size={18} color="#FFFFFF" />
+                            </LinearGradient>
+                          </Pressable>
+                        </View>
+                      </View>
+                    </Animated.View>
+                  );
+                })}
+              </View>
+            )}
+          </Animated.View>
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0A1628',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+
+  // Decorative
+  decorCircle1: {
+    position: 'absolute',
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: 'rgba(0, 217, 255, 0.03)',
+    top: -50,
+    right: -80,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(16, 185, 129, 0.03)',
+    bottom: 200,
+    left: -60,
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  greeting: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+
+  // Search Card
+  searchCard: {
+    marginHorizontal: 24,
+    marginBottom: 32,
+    borderRadius: 24,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#00D9FF',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
+  },
+  searchCardPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.95,
+  },
+  searchCardGradient: {
+    padding: 24,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  searchCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: 'rgba(10, 22, 40, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  searchTextContainer: {
+    flex: 1,
+  },
+  searchTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0A1628',
+    marginBottom: 4,
+  },
+  searchSubtitle: {
+    fontSize: 13,
+    color: 'rgba(10, 22, 40, 0.6)',
+    fontWeight: '500',
+  },
+  searchArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(10, 22, 40, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchDots: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    gap: 4,
+  },
+  searchDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(10, 22, 40, 0.2)',
+  },
+
+  // Section
+  section: {
+    paddingHorizontal: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  sectionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  sectionDate: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+  },
+  liveText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#EF4444',
+    letterSpacing: 1,
+  },
+
+  // Loading
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  // Empty state
+  emptyCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+  },
+
+  // Pharmacies list
+  pharmaciesList: {
+    gap: 12,
+  },
+  pharmacieCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    overflow: 'hidden',
+  },
+  pharmacieCardLast: {
+    marginBottom: 0,
+  },
+  pharmacieContent: {
+    padding: 18,
+  },
+  pharmacieHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  pharmacieIndex: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 217, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  pharmacieIndexText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#00D9FF',
+  },
+  pharmacieInfo: {
+    flex: 1,
+  },
+  pharmacieName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  pharmacieAddress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  pharmacieAddressText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+    flex: 1,
+  },
+  pharmacieFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pharmacieQuartier: {
+    backgroundColor: 'rgba(0, 217, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  pharmacieQuartierText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#00D9FF',
+  },
+  callButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  callButtonPressed: {
+    transform: [{ scale: 0.95 }],
+    opacity: 0.9,
+  },
+  callButtonGradient: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});

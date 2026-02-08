@@ -1,21 +1,23 @@
-import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
 import {
-  YStack,
-  XStack,
-  Text,
-  H2,
-  Input,
-  Button,
-  TextArea,
-  Spinner,
-  Card,
-  ScrollView
-} from 'tamagui';
-import { Search as SearchIcon, Send, CheckCircle } from 'lucide-react-native';
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  Animated
+} from 'react-native';
+import { ScrollView, Spinner, View } from 'tamagui';
+import { Search as SearchIcon, Send, CheckCircle, Sparkles, Pill } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../_layout';
+import { Text } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function SearchScreen() {
   const { session } = useAuth();
@@ -23,6 +25,39 @@ export default function SearchScreen() {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+  const successScale = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  useEffect(() => {
+    if (success) {
+      Animated.spring(successScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      successScale.setValue(0);
+    }
+  }, [success]);
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
@@ -37,8 +72,8 @@ export default function SearchScreen() {
     dismissKeyboard();
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('demandes')
+      const { error } = await (supabase
+        .from('demandes') as any)
         .insert({
           client_id: session?.user.id,
           medicament_nom: medicament.trim(),
@@ -52,7 +87,7 @@ export default function SearchScreen() {
       setMedicament('');
       setDescription('');
 
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => setSuccess(false), 5000);
     } catch (error: any) {
       Alert.alert('Erreur', error.message || 'Impossible d\'envoyer la demande');
     } finally {
@@ -62,162 +97,424 @@ export default function SearchScreen() {
 
   if (success) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F1F5F9' }}>
-        <YStack flex={1} justifyContent="center" alignItems="center" padding="$4" backgroundColor="#F1F5F9">
-          <YStack
-            backgroundColor="#10B981"
-            padding="$4"
-            borderRadius={50}
-            marginBottom="$4"
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#0A1628', '#132F4C', '#0A1628']}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <SafeAreaView style={styles.successContainer}>
+          <Animated.View
+            style={[
+              styles.successContent,
+              { transform: [{ scale: successScale }] }
+            ]}
           >
-            <CheckCircle size={48} color="white" />
-          </YStack>
-          <H2 textAlign="center" marginBottom="$2" color="#1E293B">
-            Demande envoyée !
-          </H2>
-          <Text color="#64748B" textAlign="center" fontSize={16} lineHeight={24}>
-            Notre équipe recherche votre médicament.{'\n'}
-            Vous recevrez une notification dès qu'une réponse sera disponible.
-          </Text>
-          <Button
-            marginTop="$6"
-            size="$4"
-            backgroundColor="#2563EB"
-            onPress={() => setSuccess(false)}
-            borderRadius={12}
-            pressStyle={{ opacity: 0.8 }}
-          >
-            <Text color="white" fontWeight="600">Nouvelle recherche</Text>
-          </Button>
-        </YStack>
-      </SafeAreaView>
+            <LinearGradient
+              colors={['#10B981', '#059669']}
+              style={styles.successIcon}
+            >
+              <CheckCircle size={48} color="#FFFFFF" />
+            </LinearGradient>
+
+            <Text style={styles.successTitle}>Demande envoyée !</Text>
+            <Text style={styles.successText}>
+              Notre équipe recherche votre médicament.{'\n'}
+              Vous serez notifié dès qu'une réponse arrive.
+            </Text>
+
+            <Pressable
+              onPress={() => setSuccess(false)}
+              style={({ pressed }) => [
+                styles.successButton,
+                pressed && styles.successButtonPressed
+              ]}
+            >
+              <LinearGradient
+                colors={['#00D9FF', '#0EA5E9']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.successButtonGradient}
+              >
+                <Text style={styles.successButtonText}>Nouvelle recherche</Text>
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F1F5F9' }}>
-      <TouchableWithoutFeedback onPress={dismissKeyboard}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <ScrollView
-            flex={1}
-            backgroundColor="#F1F5F9"
-            contentContainerStyle={{ flexGrow: 1 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            <YStack flex={1} padding="$4">
-              {/* Header */}
-              <YStack marginBottom="$6">
-                <H2 color="#1E293B" marginBottom="$2">
-                  Rechercher un médicament
-                </H2>
-                <Text color="#64748B" fontSize={14} lineHeight={20}>
-                  Décrivez le médicament que vous recherchez et notre équipe vous trouvera les meilleures options.
-                </Text>
-              </YStack>
+    <View style={styles.container}>
+      <StatusBar style="light" />
 
-              {/* Formulaire */}
-              <YStack gap="$4" flex={1}>
-                {/* Nom du médicament */}
-                <YStack>
-                  <Text color="#1E293B" fontWeight="600" marginBottom="$2" fontSize={14}>
-                    Nom du médicament *
-                  </Text>
-                  <XStack
-                    borderWidth={1}
-                    borderColor="#CBD5E1"
-                    borderRadius={12}
-                    alignItems="center"
-                    paddingHorizontal="$3"
-                    backgroundColor="#FFFFFF"
+      <LinearGradient
+        colors={['#0A1628', '#132F4C', '#0A1628']}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Decorative */}
+      <View style={styles.decorCircle1} />
+      <View style={styles.decorCircle2} />
+
+      <SafeAreaView style={styles.safeArea}>
+        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardView}
+          >
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Header */}
+              <Animated.View
+                style={[
+                  styles.header,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }]
+                  }
+                ]}
+              >
+                <View style={styles.headerIconContainer}>
+                  <LinearGradient
+                    colors={['#00D9FF', '#0EA5E9']}
+                    style={styles.headerIcon}
                   >
-                    <SearchIcon size={20} color="#64748B" />
-                    <Input
-                      flex={1}
-                      placeholder="Ex: Doliprane 1000mg, Amoxicilline..."
+                    <Pill size={20} color="#0A1628" />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.headerTitle}>Rechercher</Text>
+                <Text style={styles.headerSubtitle}>
+                  Décrivez le médicament que vous cherchez
+                </Text>
+              </Animated.View>
+
+              {/* Form */}
+              <Animated.View
+                style={[
+                  styles.formCard,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.3) }]
+                  }
+                ]}
+              >
+                {/* Nom du médicament */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>
+                    Nom du médicament <Text style={styles.required}>*</Text>
+                  </Text>
+                  <View style={styles.inputContainer}>
+                    <SearchIcon size={20} color="rgba(255,255,255,0.4)" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: Doliprane 1000mg..."
+                      placeholderTextColor="rgba(255,255,255,0.3)"
                       value={medicament}
                       onChangeText={setMedicament}
-                      borderWidth={0}
-                      backgroundColor="transparent"
-                      paddingLeft="$2"
-                      fontSize={15}
-                      color="#1E293B"
+                      returnKeyType="next"
                     />
-                  </XStack>
-                </YStack>
+                  </View>
+                </View>
 
-                {/* Description optionnelle */}
-                <YStack>
-                  <Text color="#1E293B" fontWeight="600" marginBottom="$2" fontSize={14}>
-                    Détails supplémentaires (optionnel)
-                  </Text>
-                  <TextArea
-                    placeholder="Dosage spécifique, forme (comprimé, sirop...), marque préférée..."
+                {/* Description */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.labelOptional}>Détails (optionnel)</Text>
+                  <TextInput
+                    style={styles.textArea}
+                    placeholder="Dosage, forme, marque..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
                     value={description}
                     onChangeText={setDescription}
-                    minHeight={100}
-                    borderWidth={1}
-                    borderColor="#CBD5E1"
-                    borderRadius={12}
-                    backgroundColor="#FFFFFF"
-                    padding="$3"
-                    fontSize={15}
-                    color="#1E293B"
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
                   />
-                </YStack>
+                </View>
+              </Animated.View>
 
-                {/* Info Card */}
-                <Card
-                  padding="$3"
-                  backgroundColor="#DBEAFE"
-                  borderRadius={12}
-                  borderWidth={1}
-                  borderColor="#93C5FD"
-                >
-                  <XStack gap="$2">
-                    <Text fontSize={20}>💡</Text>
-                    <YStack flex={1}>
-                      <Text color="#1E40AF" fontSize={13} lineHeight={18}>
-                        Notre équipe du Call Center reçoit votre demande en temps réel et vous répond avec les pharmacies où le médicament est disponible, ainsi que les prix.
-                      </Text>
-                    </YStack>
-                  </XStack>
-                </Card>
+              {/* Info */}
+              <Animated.View
+                style={[
+                  styles.infoCard,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.5) }]
+                  }
+                ]}
+              >
+                <Sparkles size={18} color="#00D9FF" />
+                <Text style={styles.infoText}>
+                  Notre équipe vous répond en temps réel avec les pharmacies disponibles.
+                </Text>
+              </Animated.View>
+            </ScrollView>
 
-                {/* Spacer */}
-                <YStack flex={1} />
-
-                {/* Bouton d'envoi */}
-                <Button
-                  size="$5"
-                  backgroundColor="#2563EB"
-                  onPress={submitDemande}
-                  disabled={loading || !medicament.trim()}
-                  opacity={loading || !medicament.trim() ? 0.6 : 1}
-                  borderRadius={12}
-                  pressStyle={{ opacity: 0.8 }}
-                  marginTop="$4"
-                  marginBottom="$2"
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Pressable
+                onPress={submitDemande}
+                disabled={loading || !medicament.trim()}
+                style={({ pressed }) => [
+                  styles.submitButton,
+                  pressed && !loading && styles.submitButtonPressed,
+                  (!medicament.trim() || loading) && styles.submitButtonDisabled
+                ]}
+              >
+                <LinearGradient
+                  colors={medicament.trim() && !loading ? ['#00D9FF', '#0EA5E9'] : ['#374151', '#374151']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.submitButtonGradient}
                 >
                   {loading ? (
-                    <XStack gap="$2" alignItems="center">
-                      <Spinner color="white" />
-                      <Text color="white" fontWeight="600">Envoi en cours...</Text>
-                    </XStack>
+                    <>
+                      <Spinner size="small" color="#0A1628" />
+                      <Text style={styles.submitButtonText}>Envoi...</Text>
+                    </>
                   ) : (
-                    <XStack gap="$2" alignItems="center">
-                      <Send size={20} color="white" />
-                      <Text color="white" fontWeight="600">Envoyer la demande</Text>
-                    </XStack>
+                    <>
+                      <Send size={20} color="#0A1628" />
+                      <Text style={styles.submitButtonText}>Envoyer la demande</Text>
+                    </>
                   )}
-                </Button>
-              </YStack>
-            </YStack>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
-    </SafeAreaView>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </SafeAreaView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0A1628',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 100,
+    flexGrow: 1,
+  },
+
+  // Decorative
+  decorCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(0, 217, 255, 0.03)',
+    top: 100,
+    right: -60,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(16, 185, 129, 0.03)',
+    bottom: 200,
+    left: -40,
+  },
+
+  // Header
+  header: {
+    paddingTop: 16,
+    paddingBottom: 32,
+    alignItems: 'center',
+  },
+  headerIconContainer: {
+    marginBottom: 16,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+  },
+
+  // Form
+  formCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 10,
+  },
+  labelOptional: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 10,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  inputIcon: {
+    marginLeft: 16,
+  },
+  input: {
+    flex: 1,
+    height: 54,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  textArea: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 16,
+    fontSize: 16,
+    color: '#FFFFFF',
+    minHeight: 120,
+    fontWeight: '500',
+  },
+
+  // Info
+  infoCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 217, 255, 0.08)',
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#00D9FF',
+    lineHeight: 20,
+  },
+
+  // Footer
+  footer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(10, 22, 40, 0.95)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  submitButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  submitButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 18,
+  },
+  submitButtonPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.9,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+  },
+  submitButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0A1628',
+  },
+
+  // Success
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  successContent: {
+    alignItems: 'center',
+  },
+  successIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  successText: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 36,
+  },
+  successButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  successButtonPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.9,
+  },
+  successButtonGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+  },
+  successButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0A1628',
+  },
+});

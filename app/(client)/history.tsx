@@ -1,17 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import { RefreshControl, Linking } from 'react-native';
-import {
-  YStack,
-  XStack,
-  Text,
-  H2,
-  H4,
-  ScrollView,
-  Card,
-  Button,
-  Spinner,
-  Separator
-} from 'tamagui';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { RefreshControl, Linking, StyleSheet, Platform, Pressable, Animated } from 'react-native';
+import { ScrollView, Spinner, View } from 'tamagui';
 import {
   Clock,
   CheckCircle,
@@ -19,11 +8,15 @@ import {
   MapPin,
   Phone,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  FileText
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { supabase, Demande, Proposition } from '../../lib/supabase';
 import { useAuth } from '../_layout';
+import { Text } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type DemandeWithPropositions = Demande & {
   propositions: Proposition[];
@@ -35,6 +28,25 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedDemande, setExpandedDemande] = useState<string | null>(null);
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const fetchDemandes = useCallback(async () => {
     if (!session?.user.id) return;
@@ -102,33 +114,13 @@ export default function HistoryScreen() {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'en_attente':
-        return {
-          label: 'En attente',
-          color: '#F59E0B',
-          bgColor: '#FEF3C7',
-          icon: Clock,
-        };
+        return { label: 'En attente', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)', icon: Clock };
       case 'en_cours':
-        return {
-          label: 'En cours',
-          color: '#3B82F6',
-          bgColor: '#DBEAFE',
-          icon: AlertCircle,
-        };
+        return { label: 'En cours', color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)', icon: AlertCircle };
       case 'traite':
-        return {
-          label: 'Traité',
-          color: '#10B981',
-          bgColor: '#D1FAE5',
-          icon: CheckCircle,
-        };
+        return { label: 'Traité', color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.15)', icon: CheckCircle };
       default:
-        return {
-          label: status,
-          color: '#64748B',
-          bgColor: '#F1F5F9',
-          icon: Clock,
-        };
+        return { label: status, color: 'rgba(255,255,255,0.5)', bgColor: 'rgba(255, 255, 255, 0.05)', icon: Clock };
     }
   };
 
@@ -137,7 +129,6 @@ export default function HistoryScreen() {
     return date.toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -154,186 +145,396 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F1F5F9' }}>
-      <ScrollView
-        flex={1}
-        backgroundColor="#F1F5F9"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Header */}
-        <YStack padding="$4" paddingBottom="$2">
-          <H2 color="#1E293B">Mes demandes</H2>
-          <Text color="#64748B" fontSize={14}>
-            Suivez l'état de vos recherches de médicaments
-          </Text>
-        </YStack>
+    <View style={styles.container}>
+      <StatusBar style="light" />
 
-        {/* Liste des demandes */}
-        <YStack padding="$4" paddingTop="$2" gap="$3">
+      <LinearGradient
+        colors={['#0A1628', '#132F4C', '#0A1628']}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={styles.decorCircle1} />
+      <View style={styles.decorCircle2} />
+
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#00D9FF"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <Animated.View
+            style={[
+              styles.header,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <Text style={styles.headerTitle}>Mes demandes</Text>
+            <Text style={styles.headerSubtitle}>
+              Suivez l'état de vos recherches
+            </Text>
+          </Animated.View>
+
+          {/* Liste */}
           {loading ? (
-            <YStack alignItems="center" padding="$8">
-              <Spinner size="large" color="#2563EB" />
-              <Text color="#64748B" marginTop="$2">
-                Chargement...
-              </Text>
-            </YStack>
+            <View style={styles.loadingContainer}>
+              <Spinner size="large" color="#00D9FF" />
+              <Text style={styles.loadingText}>Chargement...</Text>
+            </View>
           ) : demandes.length === 0 ? (
-            <Card
-              padding="$6"
-              backgroundColor="#FFFFFF"
-              borderRadius={16}
-              borderWidth={1}
-              borderColor="#E2E8F0"
+            <Animated.View
+              style={[
+                styles.emptyCard,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
+                }
+              ]}
             >
-              <YStack alignItems="center">
-                <Text fontSize={48} marginBottom="$3">📋</Text>
-                <H4 color="#1E293B" textAlign="center" marginBottom="$2">
-                  Aucune demande
-                </H4>
-                <Text color="#64748B" textAlign="center">
-                  Vous n'avez pas encore effectué de recherche de médicament.
-                </Text>
-              </YStack>
-            </Card>
+              <View style={styles.emptyIcon}>
+                <FileText size={48} color="rgba(255,255,255,0.3)" />
+              </View>
+              <Text style={styles.emptyTitle}>Aucune demande</Text>
+              <Text style={styles.emptyText}>
+                Vous n'avez pas encore effectué de recherche
+              </Text>
+            </Animated.View>
           ) : (
-            demandes.map((demande) => {
-              const statusConfig = getStatusConfig(demande.status);
-              const StatusIcon = statusConfig.icon;
-              const isExpanded = expandedDemande === demande.id;
-              const hasPropositions = demande.propositions && demande.propositions.length > 0;
+            <Animated.View
+              style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
+              }}
+            >
+              {demandes.map((demande, index) => {
+                const statusConfig = getStatusConfig(demande.status);
+                const StatusIcon = statusConfig.icon;
+                const isExpanded = expandedDemande === demande.id;
+                const hasPropositions = demande.propositions && demande.propositions.length > 0;
 
-              return (
-                <Card
-                  key={demande.id}
-                  borderRadius={16}
-                  backgroundColor="#FFFFFF"
-                  overflow="hidden"
-                  borderWidth={1}
-                  borderColor="#E2E8F0"
-                >
-                  {/* En-tête de la demande */}
-                  <YStack padding="$4">
-                    <XStack justifyContent="space-between" alignItems="flex-start" marginBottom="$2">
-                      <YStack flex={1} marginRight="$2">
-                        <Text fontWeight="700" fontSize={17} color="#1E293B">
-                          {demande.medicament_nom}
-                        </Text>
+                return (
+                  <View key={demande.id} style={styles.demandeCard}>
+                    {/* Header */}
+                    <View style={styles.demandeHeader}>
+                      <View style={styles.demandeInfo}>
+                        <Text style={styles.demandeMedicament}>{demande.medicament_nom}</Text>
                         {demande.description && (
-                          <Text color="#64748B" fontSize={13} marginTop={4} numberOfLines={2}>
+                          <Text style={styles.demandeDescription} numberOfLines={2}>
                             {demande.description}
                           </Text>
                         )}
-                      </YStack>
-
-                      <XStack
-                        backgroundColor={statusConfig.bgColor}
-                        paddingHorizontal={10}
-                        paddingVertical={4}
-                        borderRadius={8}
-                        alignItems="center"
-                        gap="$1"
-                      >
-                        <StatusIcon size={14} color={statusConfig.color} />
-                        <Text color={statusConfig.color} fontSize={12} fontWeight="600">
+                        <Text style={styles.demandeDate}>{formatDate(demande.created_at)}</Text>
+                      </View>
+                      <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+                        <StatusIcon size={12} color={statusConfig.color} />
+                        <Text style={[styles.statusText, { color: statusConfig.color }]}>
                           {statusConfig.label}
                         </Text>
-                      </XStack>
-                    </XStack>
+                      </View>
+                    </View>
 
-                    <Text color="#94A3B8" fontSize={12}>
-                      {formatDate(demande.created_at)}
-                    </Text>
-                  </YStack>
-
-                  {/* Propositions (si disponibles) */}
-                  {hasPropositions && (
-                    <>
-                      <Separator backgroundColor="#E2E8F0" />
-                      <Button
-                        chromeless
-                        padding="$3"
-                        onPress={() => toggleExpanded(demande.id)}
-                        pressStyle={{ backgroundColor: '#F8FAFC' }}
-                      >
-                        <XStack justifyContent="space-between" alignItems="center" flex={1}>
-                          <Text color="#2563EB" fontWeight="600" fontSize={14}>
+                    {/* Propositions */}
+                    {hasPropositions && (
+                      <>
+                        <Pressable
+                          onPress={() => toggleExpanded(demande.id)}
+                          style={({ pressed }) => [
+                            styles.propositionsToggle,
+                            pressed && styles.propositionsTogglePressed
+                          ]}
+                        >
+                          <Text style={styles.propositionsCount}>
                             {demande.propositions.length} pharmacie{demande.propositions.length > 1 ? 's' : ''} disponible{demande.propositions.length > 1 ? 's' : ''}
                           </Text>
                           {isExpanded ? (
-                            <ChevronUp size={20} color="#2563EB" />
+                            <ChevronUp size={20} color="#00D9FF" />
                           ) : (
-                            <ChevronDown size={20} color="#2563EB" />
+                            <ChevronDown size={20} color="#00D9FF" />
                           )}
-                        </XStack>
-                      </Button>
+                        </Pressable>
 
-                      {isExpanded && (
-                        <YStack backgroundColor="#F8FAFC" padding="$3" gap="$2">
-                          {demande.propositions.map((proposition) => (
-                            <Card
-                              key={proposition.id}
-                              padding="$3"
-                              backgroundColor="#FFFFFF"
-                              borderRadius={12}
-                              borderWidth={1}
-                              borderColor="#E2E8F0"
-                            >
-                              <XStack justifyContent="space-between" alignItems="flex-start">
-                                <YStack flex={1} marginRight="$2">
-                                  <Text fontWeight="600" color="#1E293B" fontSize={15}>
-                                    {proposition.pharmacie_nom}
-                                  </Text>
-
-                                  <XStack gap="$1" alignItems="center" marginTop={4}>
-                                    <MapPin size={12} color="#64748B" />
-                                    <Text color="#64748B" fontSize={13}>
+                        {isExpanded && (
+                          <View style={styles.propositionsList}>
+                            {demande.propositions.map((proposition) => (
+                              <View key={proposition.id} style={styles.propositionCard}>
+                                <View style={styles.propositionInfo}>
+                                  <Text style={styles.propositionName}>{proposition.pharmacie_nom}</Text>
+                                  <View style={styles.propositionLocation}>
+                                    <MapPin size={12} color="rgba(255,255,255,0.4)" />
+                                    <Text style={styles.propositionAddress}>
                                       {proposition.quartier}
                                       {proposition.adresse && ` - ${proposition.adresse}`}
                                     </Text>
-                                  </XStack>
-
-                                  <YStack
-                                    backgroundColor="#D1FAE5"
-                                    alignSelf="flex-start"
-                                    paddingHorizontal={10}
-                                    paddingVertical={4}
-                                    borderRadius={6}
-                                    marginTop={8}
-                                  >
-                                    <Text color="#059669" fontWeight="700" fontSize={16}>
+                                  </View>
+                                  <View style={styles.priceBadge}>
+                                    <Text style={styles.priceText}>
                                       {proposition.prix.toLocaleString()} FCFA
                                     </Text>
-                                  </YStack>
-                                </YStack>
+                                  </View>
+                                </View>
 
                                 {proposition.telephone && (
-                                  <Button
-                                    size="$3"
-                                    backgroundColor="#10B981"
-                                    borderRadius={50}
-                                    width={40}
-                                    height={40}
+                                  <Pressable
                                     onPress={() => callPharmacy(proposition.telephone!)}
-                                    pressStyle={{ opacity: 0.8 }}
+                                    style={({ pressed }) => [
+                                      styles.callButton,
+                                      pressed && styles.callButtonPressed
+                                    ]}
                                   >
-                                    <Phone size={18} color="white" />
-                                  </Button>
+                                    <LinearGradient
+                                      colors={['#10B981', '#059669']}
+                                      style={styles.callButtonGradient}
+                                    >
+                                      <Phone size={18} color="#FFFFFF" />
+                                    </LinearGradient>
+                                  </Pressable>
                                 )}
-                              </XStack>
-                            </Card>
-                          ))}
-                        </YStack>
-                      )}
-                    </>
-                  )}
-                </Card>
-              );
-            })
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </View>
+                );
+              })}
+            </Animated.View>
           )}
-        </YStack>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0A1628',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+
+  // Decorative
+  decorCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(0, 217, 255, 0.03)',
+    top: -50,
+    right: -60,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(16, 185, 129, 0.03)',
+    bottom: 300,
+    left: -40,
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  headerTitle: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  // Loading
+  loadingContainer: {
+    paddingTop: 80,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  // Empty
+  emptyCard: {
+    marginHorizontal: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
+    padding: 40,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emptyIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+  },
+
+  // Demande Card
+  demandeCard: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    overflow: 'hidden',
+  },
+  demandeHeader: {
+    padding: 18,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  demandeInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  demandeMedicament: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  demandeDescription: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 8,
+  },
+  demandeDate: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.3)',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  // Propositions
+  propositionsToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  propositionsTogglePressed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  propositionsCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#00D9FF',
+  },
+  propositionsList: {
+    padding: 12,
+    paddingTop: 0,
+    gap: 10,
+  },
+  propositionCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  propositionInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  propositionName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  propositionLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  propositionAddress: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+    flex: 1,
+  },
+  priceBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  priceText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  callButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  callButtonPressed: {
+    transform: [{ scale: 0.95 }],
+    opacity: 0.9,
+  },
+  callButtonGradient: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
+

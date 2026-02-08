@@ -1,27 +1,22 @@
-import { useEffect, useState, useCallback } from 'react';
-import { RefreshControl } from 'react-native';
-import {
-  YStack,
-  XStack,
-  Text,
-  H2,
-  H3,
-  ScrollView,
-  Card,
-  Spinner,
-  View
-} from 'tamagui';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { RefreshControl, StyleSheet, Platform, Pressable, Animated } from 'react-native';
+import { ScrollView, Spinner, View } from 'tamagui';
 import {
   Clock,
   CheckCircle,
   AlertCircle,
   TrendingUp,
-  Users
+  Users,
+  ChevronRight,
+  Zap
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../_layout';
+import { Text } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type Stats = {
   total: number;
@@ -32,6 +27,7 @@ type Stats = {
 
 export default function DashboardScreen() {
   const { profile } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState<Stats>({
     total: 0,
     en_attente: 0,
@@ -41,6 +37,25 @@ export default function DashboardScreen() {
   const [recentDemandes, setRecentDemandes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -52,9 +67,9 @@ export default function DashboardScreen() {
 
       const statsData = {
         total: allDemandes?.length || 0,
-        en_attente: allDemandes?.filter(d => d.status === 'en_attente').length || 0,
-        en_cours: allDemandes?.filter(d => d.status === 'en_cours').length || 0,
-        traite: allDemandes?.filter(d => d.status === 'traite').length || 0,
+        en_attente: allDemandes?.filter((d: any) => d.status === 'en_attente').length || 0,
+        en_cours: allDemandes?.filter((d: any) => d.status === 'en_cours').length || 0,
+        traite: allDemandes?.filter((d: any) => d.status === 'traite').length || 0,
       };
       setStats(statsData);
 
@@ -112,224 +127,451 @@ export default function DashboardScreen() {
     return 'Bonsoir';
   };
 
-  const StatCard = ({
-    title,
-    value,
-    icon: Icon,
-    color,
-    bgColor
-  }: {
-    title: string;
-    value: number;
-    icon: any;
-    color: string;
-    bgColor: string;
-  }) => (
-    <Card
-      flex={1}
-      padding="$4"
-      borderRadius={16}
-      backgroundColor="#FFFFFF"
-      borderWidth={1}
-      borderColor="#E2E8F0"
-    >
-      <XStack justifyContent="space-between" alignItems="flex-start">
-        <YStack>
-          <Text color="#64748B" fontSize={13} marginBottom={4}>
-            {title}
-          </Text>
-          <Text fontWeight="700" fontSize={28} color="#1E293B">
-            {value}
-          </Text>
-        </YStack>
-        <View
-          backgroundColor={bgColor}
-          padding={10}
-          borderRadius={12}
-          alignItems="center"
-          justifyContent="center"
-        >
-          <Icon size={22} color={color} />
-        </View>
-      </XStack>
-    </Card>
-  );
-
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
 
     if (diffMins < 1) return 'À l\'instant';
-    if (diffMins < 60) return `Il y a ${diffMins} min`;
-    if (diffMins < 1440) return `Il y a ${Math.floor(diffMins / 60)}h`;
-    return date.toLocaleDateString('fr-FR');
+    if (diffMins < 60) return `${diffMins}min`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   };
 
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'en_attente':
-        return { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' };
+        return { color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)' };
       case 'en_cours':
-        return { label: 'En cours', color: '#3B82F6', bgColor: '#DBEAFE' };
+        return { color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)' };
       case 'traite':
-        return { label: 'Traité', color: '#10B981', bgColor: '#D1FAE5' };
+        return { color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.15)' };
       default:
-        return { label: status, color: '#64748B', bgColor: '#F1F5F9' };
+        return { color: 'rgba(255,255,255,0.5)', bgColor: 'rgba(255, 255, 255, 0.05)' };
     }
   };
 
+  const statsCards = [
+    { title: 'En attente', value: stats.en_attente, icon: Clock, color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
+    { title: 'En cours', value: stats.en_cours, icon: AlertCircle, color: '#3B82F6', gradient: ['#3B82F6', '#2563EB'] },
+    { title: 'Traités', value: stats.traite, icon: CheckCircle, color: '#10B981', gradient: ['#10B981', '#059669'] },
+    { title: 'Total', value: stats.total, icon: TrendingUp, color: '#8B5CF6', gradient: ['#8B5CF6', '#7C3AED'] },
+  ];
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F1F5F9' }}>
-      <StatusBar style="dark" />
-      <ScrollView
-        flex={1}
-        backgroundColor="#F1F5F9"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Header */}
-        <YStack padding="$4" paddingBottom="$2">
-          <Text color="#64748B" fontSize={16}>
-            {getGreeting()},
-          </Text>
-          <H2 color="#1E293B">
-            Agent {profile?.full_name || ''} 🎧
-          </H2>
-        </YStack>
+    <View style={styles.container}>
+      <StatusBar style="light" />
 
-        {loading ? (
-          <YStack alignItems="center" padding="$8">
-            <Spinner size="large" color="#10B981" />
-          </YStack>
-        ) : (
-          <>
-            {/* Statistiques */}
-            <YStack padding="$4" paddingTop="$2" gap="$3">
-              <XStack gap="$3">
-                <StatCard
-                  title="En attente"
-                  value={stats.en_attente}
-                  icon={Clock}
-                  color="#F59E0B"
-                  bgColor="#FEF3C7"
-                />
-                <StatCard
-                  title="En cours"
-                  value={stats.en_cours}
-                  icon={AlertCircle}
-                  color="#3B82F6"
-                  bgColor="#DBEAFE"
-                />
-              </XStack>
+      <LinearGradient
+        colors={['#0A1628', '#132F4C', '#0A1628']}
+        style={StyleSheet.absoluteFill}
+      />
 
-              <XStack gap="$3">
-                <StatCard
-                  title="Traités"
-                  value={stats.traite}
-                  icon={CheckCircle}
-                  color="#10B981"
-                  bgColor="#D1FAE5"
-                />
-                <StatCard
-                  title="Total"
-                  value={stats.total}
-                  icon={TrendingUp}
-                  color="#8B5CF6"
-                  bgColor="#EDE9FE"
-                />
-              </XStack>
-            </YStack>
+      {/* Decorative */}
+      <View style={styles.decorCircle1} />
+      <View style={styles.decorCircle2} />
 
-            {/* Demandes récentes */}
-            <YStack padding="$4" paddingTop="$0">
-              <XStack justifyContent="space-between" alignItems="center" marginBottom="$3">
-                <H3 color="#1E293B">Demandes récentes</H3>
-                {stats.en_attente > 0 && (
-                  <View
-                    backgroundColor="#EF4444"
-                    paddingHorizontal={10}
-                    paddingVertical={4}
-                    borderRadius={12}
-                  >
-                    <Text color="white" fontSize={12} fontWeight="600">
-                      {stats.en_attente} nouvelle{stats.en_attente > 1 ? 's' : ''}
-                    </Text>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.scrollView}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#10B981"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Header */}
+          <Animated.View
+            style={[
+              styles.header,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <View>
+              <Text style={styles.greeting}>{getGreeting()},</Text>
+              <Text style={styles.userName}>
+                {profile?.full_name || 'Agent'} 🎧
+              </Text>
+            </View>
+            {stats.en_attente > 0 && (
+              <View style={styles.alertBadge}>
+                <Zap size={14} color="#0A1628" />
+                <Text style={styles.alertBadgeText}>{stats.en_attente}</Text>
+              </View>
+            )}
+          </Animated.View>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Spinner size="large" color="#10B981" />
+            </View>
+          ) : (
+            <>
+              {/* Stats Grid */}
+              <Animated.View
+                style={[
+                  styles.statsGrid,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
+                  }
+                ]}
+              >
+                {statsCards.map((stat, index) => {
+                  const Icon = stat.icon;
+                  return (
+                    <View key={stat.title} style={styles.statCard}>
+                      <View style={styles.statHeader}>
+                        <LinearGradient
+                          colors={stat.gradient as [string, string]}
+                          style={styles.statIcon}
+                        >
+                          <Icon size={18} color="#FFFFFF" />
+                        </LinearGradient>
+                      </View>
+                      <Text style={styles.statValue}>{stat.value}</Text>
+                      <Text style={styles.statTitle}>{stat.title}</Text>
+                    </View>
+                  );
+                })}
+              </Animated.View>
+
+              {/* Recent Demandes */}
+              <Animated.View
+                style={[
+                  styles.section,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.4) }]
+                  }
+                ]}
+              >
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Demandes récentes</Text>
+                  <View style={styles.liveIndicator}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.liveText}>LIVE</Text>
                   </View>
-                )}
-              </XStack>
+                </View>
 
-              {recentDemandes.length === 0 ? (
-                <Card
-                  padding="$6"
-                  backgroundColor="#FFFFFF"
-                  borderRadius={16}
-                  borderWidth={1}
-                  borderColor="#E2E8F0"
-                >
-                  <YStack alignItems="center">
-                    <Text fontSize={48} marginBottom="$2">📭</Text>
-                    <Text color="#64748B" textAlign="center">
-                      Aucune demande pour le moment
-                    </Text>
-                  </YStack>
-                </Card>
-              ) : (
-                <YStack gap="$3">
-                  {recentDemandes.map((demande) => {
-                    const statusConfig = getStatusConfig(demande.status);
+                {recentDemandes.length === 0 ? (
+                  <View style={styles.emptyCard}>
+                    <Text style={styles.emptyEmoji}>📭</Text>
+                    <Text style={styles.emptyText}>Aucune demande</Text>
+                  </View>
+                ) : (
+                  <View style={styles.demandesList}>
+                    {recentDemandes.map((demande, index) => {
+                      const statusConfig = getStatusConfig(demande.status);
+                      const isLast = index === recentDemandes.length - 1;
 
-                    return (
-                      <Card
-                        key={demande.id}
-                        padding="$4"
-                        borderRadius={16}
-                        backgroundColor="#FFFFFF"
-                        borderWidth={1}
-                        borderColor="#E2E8F0"
-                      >
-                        <XStack justifyContent="space-between" alignItems="flex-start">
-                          <YStack flex={1}>
-                            <Text fontWeight="700" color="#1E293B" fontSize={16}>
+                      return (
+                        <Pressable
+                          key={demande.id}
+                          onPress={() => router.push('/(agent)/demandes')}
+                          style={({ pressed }) => [
+                            styles.demandeCard,
+                            pressed && styles.demandeCardPressed,
+                            isLast && styles.demandeCardLast,
+                          ]}
+                        >
+                          <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
+
+                          <View style={styles.demandeContent}>
+                            <Text style={styles.demandeMedicament} numberOfLines={1}>
                               {demande.medicament_nom}
                             </Text>
-                            <XStack gap="$2" alignItems="center" marginTop={6}>
-                              <Users size={14} color="#64748B" />
-                              <Text color="#64748B" fontSize={13}>
-                                {demande.profiles?.full_name || demande.profiles?.phone || 'Client'}
+                            <View style={styles.demandeFooter}>
+                              <View style={styles.clientInfo}>
+                                <Users size={12} color="rgba(255,255,255,0.4)" />
+                                <Text style={styles.clientName}>
+                                  {demande.profiles?.full_name || demande.profiles?.phone || 'Client'}
+                                </Text>
+                              </View>
+                              <Text style={styles.demandeTime}>
+                                {formatTime(demande.created_at)}
                               </Text>
-                            </XStack>
-                            <Text color="#94A3B8" fontSize={12} marginTop={4}>
-                              {formatTime(demande.created_at)}
-                            </Text>
-                          </YStack>
-
-                          <View
-                            backgroundColor={statusConfig.bgColor}
-                            paddingHorizontal={10}
-                            paddingVertical={4}
-                            borderRadius={8}
-                          >
-                            <Text
-                              color={statusConfig.color}
-                              fontSize={12}
-                              fontWeight="600"
-                            >
-                              {statusConfig.label}
-                            </Text>
+                            </View>
                           </View>
-                        </XStack>
-                      </Card>
-                    );
-                  })}
-                </YStack>
-              )}
-            </YStack>
-          </>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+
+                          <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {/* View All Button */}
+                <Pressable
+                  onPress={() => router.push('/(agent)/demandes')}
+                  style={({ pressed }) => [
+                    styles.viewAllButton,
+                    pressed && styles.viewAllButtonPressed
+                  ]}
+                >
+                  <Text style={styles.viewAllText}>Voir toutes les demandes</Text>
+                  <ChevronRight size={18} color="#10B981" />
+                </Pressable>
+              </Animated.View>
+            </>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0A1628',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+
+  // Decorative
+  decorCircle1: {
+    position: 'absolute',
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: 'rgba(16, 185, 129, 0.03)',
+    top: -80,
+    right: -80,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(245, 158, 11, 0.03)',
+    bottom: 200,
+    left: -60,
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 28,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  greeting: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  alertBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  alertBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0A1628',
+  },
+
+  // Loading
+  loadingContainer: {
+    paddingTop: 100,
+    alignItems: 'center',
+  },
+
+  // Stats Grid
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 32,
+  },
+  statCard: {
+    width: '47%',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  statHeader: {
+    marginBottom: 16,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '500',
+  },
+
+  // Section
+  section: {
+    paddingHorizontal: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+  },
+  liveText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#EF4444',
+    letterSpacing: 1,
+  },
+
+  // Empty
+  emptyCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  // Demandes list
+  demandesList: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  demandeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  demandeCardPressed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  demandeCardLast: {
+    borderBottomWidth: 0,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  demandeContent: {
+    flex: 1,
+  },
+  demandeMedicament: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  demandeFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  clientInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  clientName: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  demandeTime: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.3)',
+  },
+
+  // View all button
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    marginTop: 16,
+    gap: 4,
+  },
+  viewAllButtonPressed: {
+    opacity: 0.7,
+  },
+  viewAllText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+});
+
