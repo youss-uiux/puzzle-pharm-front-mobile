@@ -1,5 +1,10 @@
+/**
+ * Dashboard Screen - Agent
+ * Modern Apothecary Design System
+ * Bento grid stats with premium card design
+ */
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { RefreshControl, StyleSheet, Platform, Pressable, Animated } from 'react-native';
+import { RefreshControl, StyleSheet, Platform, Pressable, Animated, View as RNView, Text } from 'react-native';
 import { ScrollView, Spinner, View } from 'tamagui';
 import {
   Clock,
@@ -15,8 +20,15 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../_layout';
-import { Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  shadows,
+  BackgroundShapes,
+  BentoCard,
+} from '../../components/design-system';
 
 type Stats = {
   total: number;
@@ -40,18 +52,19 @@ export default function DashboardScreen() {
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 700,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 600,
+        damping: 20,
+        stiffness: 90,
         useNativeDriver: true,
       }),
     ]).start();
@@ -143,35 +156,27 @@ export default function DashboardScreen() {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'en_attente':
-        return { color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)' };
+        return { color: colors.warning.primary, bgColor: colors.warning.light };
       case 'en_cours':
-        return { color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)' };
+        return { color: colors.info.primary, bgColor: colors.info.light };
       case 'traite':
-        return { color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.15)' };
+        return { color: colors.success.primary, bgColor: colors.success.light };
       default:
-        return { color: 'rgba(255,255,255,0.5)', bgColor: 'rgba(255, 255, 255, 0.05)' };
+        return { color: colors.text.tertiary, bgColor: colors.surface.secondary };
     }
   };
 
   const statsCards = [
-    { title: 'En attente', value: stats.en_attente, icon: Clock, color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
-    { title: 'En cours', value: stats.en_cours, icon: AlertCircle, color: '#3B82F6', gradient: ['#3B82F6', '#2563EB'] },
-    { title: 'Traités', value: stats.traite, icon: CheckCircle, color: '#10B981', gradient: ['#10B981', '#059669'] },
-    { title: 'Total', value: stats.total, icon: TrendingUp, color: '#8B5CF6', gradient: ['#8B5CF6', '#7C3AED'] },
+    { title: 'En attente', value: stats.en_attente, icon: Clock, color: colors.warning.primary, bgColor: colors.warning.light },
+    { title: 'En cours', value: stats.en_cours, icon: AlertCircle, color: colors.info.primary, bgColor: colors.info.light },
+    { title: 'Traités', value: stats.traite, icon: CheckCircle, color: colors.success.primary, bgColor: colors.success.light },
+    { title: 'Total', value: stats.total, icon: TrendingUp, color: colors.accent.primary, bgColor: colors.accent.light },
   ];
 
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <StatusBar style="light" />
-
-      <LinearGradient
-        colors={['#0A1628', '#132F4C', '#0A1628']}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Decorative */}
-      <View style={styles.decorCircle1} />
-      <View style={styles.decorCircle2} />
+      <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -180,7 +185,7 @@ export default function DashboardScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#10B981"
+              tintColor={colors.accent.primary}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -196,51 +201,51 @@ export default function DashboardScreen() {
               }
             ]}
           >
-            <View>
+            <RNView>
               <Text style={styles.greeting}>{getGreeting()},</Text>
               <Text style={styles.userName}>
                 {profile?.full_name || 'Agent'} 🎧
               </Text>
-            </View>
+            </RNView>
             {stats.en_attente > 0 && (
-              <View style={styles.alertBadge}>
-                <Zap size={14} color="#0A1628" />
+              <RNView style={styles.alertBadge}>
+                <Zap size={14} color={colors.text.primary} />
                 <Text style={styles.alertBadgeText}>{stats.en_attente}</Text>
-              </View>
+              </RNView>
             )}
           </Animated.View>
 
           {loading ? (
-            <View style={styles.loadingContainer}>
-              <Spinner size="large" color="#10B981" />
-            </View>
+            <RNView style={styles.loadingContainer}>
+              <Spinner size="large" color={colors.accent.primary} />
+            </RNView>
           ) : (
             <>
-              {/* Stats Grid */}
+              {/* Stats Grid - Bento Style */}
               <Animated.View
                 style={[
                   styles.statsGrid,
                   {
                     opacity: fadeAnim,
-                    transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.1) }]
                   }
                 ]}
               >
                 {statsCards.map((stat, index) => {
                   const Icon = stat.icon;
                   return (
-                    <View key={stat.title} style={styles.statCard}>
-                      <View style={styles.statHeader}>
-                        <LinearGradient
-                          colors={stat.gradient as [string, string]}
-                          style={styles.statIcon}
-                        >
-                          <Icon size={18} color="#FFFFFF" />
-                        </LinearGradient>
-                      </View>
+                    <BentoCard
+                      key={stat.title}
+                      size="1x1"
+                      variant="elevated"
+                      style={styles.statCard}
+                    >
+                      <RNView style={[styles.statIcon, { backgroundColor: stat.bgColor }]}>
+                        <Icon size={20} color={stat.color} />
+                      </RNView>
                       <Text style={styles.statValue}>{stat.value}</Text>
                       <Text style={styles.statTitle}>{stat.title}</Text>
-                    </View>
+                    </BentoCard>
                   );
                 })}
               </Animated.View>
@@ -251,25 +256,25 @@ export default function DashboardScreen() {
                   styles.section,
                   {
                     opacity: fadeAnim,
-                    transform: [{ translateY: Animated.multiply(slideAnim, 1.4) }]
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
                   }
                 ]}
               >
-                <View style={styles.sectionHeader}>
+                <RNView style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Demandes récentes</Text>
-                  <View style={styles.liveIndicator}>
-                    <View style={styles.liveDot} />
+                  <RNView style={styles.liveIndicator}>
+                    <RNView style={styles.liveDot} />
                     <Text style={styles.liveText}>LIVE</Text>
-                  </View>
-                </View>
+                  </RNView>
+                </RNView>
 
                 {recentDemandes.length === 0 ? (
-                  <View style={styles.emptyCard}>
+                  <RNView style={styles.emptyCard}>
                     <Text style={styles.emptyEmoji}>📭</Text>
                     <Text style={styles.emptyText}>Aucune demande</Text>
-                  </View>
+                  </RNView>
                 ) : (
-                  <View style={styles.demandesList}>
+                  <RNView style={styles.demandesList}>
                     {recentDemandes.map((demande, index) => {
                       const statusConfig = getStatusConfig(demande.status);
                       const isLast = index === recentDemandes.length - 1;
@@ -284,30 +289,30 @@ export default function DashboardScreen() {
                             isLast && styles.demandeCardLast,
                           ]}
                         >
-                          <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
+                          <RNView style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
 
-                          <View style={styles.demandeContent}>
+                          <RNView style={styles.demandeContent}>
                             <Text style={styles.demandeMedicament} numberOfLines={1}>
                               {demande.medicament_nom}
                             </Text>
-                            <View style={styles.demandeFooter}>
-                              <View style={styles.clientInfo}>
-                                <Users size={12} color="rgba(255,255,255,0.4)" />
+                            <RNView style={styles.demandeFooter}>
+                              <RNView style={styles.clientInfo}>
+                                <Users size={12} color={colors.text.tertiary} />
                                 <Text style={styles.clientName}>
                                   {demande.profiles?.full_name || demande.profiles?.phone || 'Client'}
                                 </Text>
-                              </View>
+                              </RNView>
                               <Text style={styles.demandeTime}>
                                 {formatTime(demande.created_at)}
                               </Text>
-                            </View>
-                          </View>
+                            </RNView>
+                          </RNView>
 
-                          <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+                          <ChevronRight size={18} color={colors.text.tertiary} />
                         </Pressable>
                       );
                     })}
-                  </View>
+                  </RNView>
                 )}
 
                 {/* View All Button */}
@@ -319,21 +324,22 @@ export default function DashboardScreen() {
                   ]}
                 >
                   <Text style={styles.viewAllText}>Voir toutes les demandes</Text>
-                  <ChevronRight size={18} color="#10B981" />
+                  <ChevronRight size={18} color={colors.accent.primary} />
                 </Pressable>
               </Animated.View>
             </>
           )}
+          <RNView style={{ height: 120 }} />
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </RNView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A1628',
+    backgroundColor: colors.background.primary,
   },
   safeArea: {
     flex: 1,
@@ -342,200 +348,164 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 120,
-  },
-
-  // Decorative
-  decorCircle1: {
-    position: 'absolute',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(16, 185, 129, 0.03)',
-    top: -80,
-    right: -80,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(245, 158, 11, 0.03)',
-    bottom: 200,
-    left: -60,
+    paddingBottom: 20,
   },
 
   // Header
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 28,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
   greeting: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 4,
-    fontWeight: '500',
+    ...typography.body,
+    color: colors.text.tertiary,
+    marginBottom: spacing.xs,
   },
   userName: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    ...typography.h1,
+    color: colors.text.inverse,
   },
   alertBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    gap: spacing.xs,
+    backgroundColor: colors.accent.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    ...shadows.accent,
   },
   alertBadgeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0A1628',
+    ...typography.label,
+    color: colors.text.primary,
   },
 
   // Loading
   loadingContainer: {
-    paddingTop: 100,
+    paddingTop: spacing.xxxl,
     alignItems: 'center',
   },
 
-  // Stats Grid
+  // Stats Grid - Bento
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 32,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+    marginBottom: spacing.xl,
   },
   statCard: {
     width: '47%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  statHeader: {
-    marginBottom: 16,
+    minHeight: 130,
   },
   statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: spacing.md,
   },
   statValue: {
+    ...typography.display,
     fontSize: 36,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   statTitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    fontWeight: '500',
+    ...typography.body,
+    color: colors.text.secondary,
   },
 
   // Section
   section: {
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    ...typography.h3,
+    color: colors.text.inverse,
   },
   liveIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
+    backgroundColor: colors.error.light,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error.primary,
   },
   liveText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#EF4444',
-    letterSpacing: 1,
+    ...typography.overline,
+    color: colors.error.primary,
   },
 
   // Empty
   emptyCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
-    padding: 40,
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
+    padding: spacing.xxl,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    ...shadows.md,
   },
   emptyEmoji: {
     fontSize: 48,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   emptyText: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.5)',
+    ...typography.body,
+    color: colors.text.secondary,
   },
 
   // Demandes list
   demandesList: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    ...shadows.md,
   },
   demandeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: colors.border.light,
   },
   demandeCardPressed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.surface.secondary,
   },
   demandeCardLast: {
     borderBottomWidth: 0,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 12,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: spacing.md,
   },
   demandeContent: {
     flex: 1,
   },
   demandeMedicament: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    ...typography.label,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   demandeFooter: {
     flexDirection: 'row',
@@ -545,15 +515,15 @@ const styles = StyleSheet.create({
   clientInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
   },
   clientName: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.4)',
+    ...typography.caption,
+    color: colors.text.tertiary,
   },
   demandeTime: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.3)',
+    ...typography.caption,
+    color: colors.text.tertiary,
   },
 
   // View all button
@@ -561,17 +531,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    marginTop: 16,
-    gap: 4,
+    paddingVertical: spacing.lg,
+    marginTop: spacing.md,
+    gap: spacing.xs,
   },
   viewAllButtonPressed: {
     opacity: 0.7,
   },
   viewAllText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#10B981',
+    ...typography.label,
+    color: colors.accent.primary,
   },
 });
 

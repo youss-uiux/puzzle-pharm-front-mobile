@@ -1,3 +1,8 @@
+/**
+ * Login Screen
+ * Modern Apothecary Design System
+ * Premium authentication experience
+ */
 import { useState, useEffect, useRef } from 'react';
 import {
   Alert,
@@ -9,7 +14,9 @@ import {
   Pressable,
   TextInput,
   Animated,
-  Dimensions
+  Dimensions,
+  View as RNView,
+  Text
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Spinner, View, ScrollView } from 'tamagui';
@@ -18,8 +25,14 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../_layout';
-import { Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  shadows,
+  BackgroundShapes,
+} from '../../components/design-system';
 
 const { width, height } = Dimensions.get('window');
 
@@ -36,7 +49,6 @@ export default function LoginScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Animation d'entrée séquentielle
     Animated.sequence([
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -58,7 +70,6 @@ export default function LoginScreen() {
       ]),
     ]).start();
 
-    // Animation de pulsation continue pour le logo
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -75,7 +86,6 @@ export default function LoginScreen() {
     ).start();
   }, []);
 
-  // Redirection automatique si déjà connecté
   useEffect(() => {
     if (!isLoading && session && profile) {
       if (profile.role === 'AGENT') {
@@ -156,38 +166,23 @@ export default function LoginScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <RNView style={styles.loadingContainer}>
         <StatusBar style="light" />
-        <LinearGradient
-          colors={['#0A1628', '#1E3A5F', '#0F2744']}
-          style={StyleSheet.absoluteFill}
-        />
+        <BackgroundShapes variant="home" />
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-          <View style={styles.loadingLogo}>
+          <RNView style={styles.loadingLogo}>
             <Text style={styles.loadingEmoji}>💊</Text>
-          </View>
+          </RNView>
         </Animated.View>
-        <Spinner size="large" color="#00D9FF" />
-      </View>
+        <Spinner size="large" color={colors.accent.primary} />
+      </RNView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <StatusBar style="light" />
-
-      {/* Background gradient */}
-      <LinearGradient
-        colors={['#0A1628', '#132F4C', '#0A1628']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Decorative elements */}
-      <View style={styles.decorCircle1} />
-      <View style={styles.decorCircle2} />
-      <View style={styles.decorCircle3} />
+      <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
@@ -215,25 +210,20 @@ export default function LoginScreen() {
                 ]}
               >
                 <Animated.View style={[styles.logoWrapper, { transform: [{ scale: pulseAnim }] }]}>
-                  <LinearGradient
-                    colors={['#00D9FF', '#0EA5E9', '#0284C7']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.logo}
-                  >
+                  <RNView style={styles.logo}>
                     <Text style={styles.logoEmoji}>💊</Text>
-                  </LinearGradient>
-                  <View style={styles.logoGlow} />
+                  </RNView>
+                  <RNView style={styles.logoGlow} />
                 </Animated.View>
 
                 <Text style={styles.appName}>PuzzlePharm</Text>
-                <View style={styles.taglineContainer}>
-                  <Sparkles size={14} color="#00D9FF" />
+                <RNView style={styles.taglineContainer}>
+                  <Sparkles size={14} color={colors.accent.primary} />
                   <Text style={styles.tagline}>Vos médicaments, simplement</Text>
-                </View>
+                </RNView>
               </Animated.View>
 
-              {/* Form Card avec glassmorphism */}
+              {/* Form Card */}
               <Animated.View
                 style={[
                   styles.formCard,
@@ -243,31 +233,32 @@ export default function LoginScreen() {
                   }
                 ]}
               >
-                <View style={styles.formHeader}>
+                <RNView style={styles.formHeader}>
                   <Text style={styles.formTitle}>Bienvenue</Text>
                   <Text style={styles.formSubtitle}>
                     Connectez-vous avec votre numéro
                   </Text>
-                </View>
+                </RNView>
 
-                <View style={styles.inputWrapper}>
-                  <View style={styles.inputContainer}>
-                    <View style={styles.countryCode}>
+                <RNView style={styles.inputWrapper}>
+                  <RNView style={styles.inputContainer}>
+                    <RNView style={styles.countryCode}>
                       <Text style={styles.flag}>🇳🇪</Text>
                       <Text style={styles.countryCodeText}>+227</Text>
-                    </View>
-                    <View style={styles.inputDivider} />
+                    </RNView>
+                    <RNView style={styles.inputDivider} />
                     <TextInput
                       style={styles.input}
                       placeholder="90 84 84 24"
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor={colors.text.tertiary}
                       value={phone}
                       onChangeText={handlePhoneChange}
                       keyboardType="phone-pad"
                       autoComplete="tel"
+                      selectionColor={colors.accent.primary}
                     />
-                  </View>
-                </View>
+                  </RNView>
+                </RNView>
 
                 {/* Submit Button */}
                 <Pressable
@@ -279,21 +270,16 @@ export default function LoginScreen() {
                     (!phone || loading) && styles.submitButtonDisabled
                   ]}
                 >
-                  <LinearGradient
-                    colors={phone && !loading ? ['#00D9FF', '#0EA5E9'] : ['#374151', '#374151']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.submitButtonGradient}
-                  >
+                  <RNView style={styles.submitButtonInner}>
                     {loading ? (
                       <>
-                        <Spinner size="small" color="#0A1628" />
+                        <Spinner size="small" color={colors.text.primary} />
                         <Text style={styles.submitButtonText}>Connexion...</Text>
                       </>
                     ) : (
                       <Text style={styles.submitButtonText}>Continuer</Text>
                     )}
-                  </LinearGradient>
+                  </RNView>
                 </Pressable>
               </Animated.View>
 
@@ -308,36 +294,37 @@ export default function LoginScreen() {
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </SafeAreaView>
-    </View>
+    </RNView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A1628',
+    backgroundColor: colors.background.primary,
   },
   safeArea: {
     flex: 1,
   },
   loadingContainer: {
     flex: 1,
+    backgroundColor: colors.background.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 24,
+    gap: spacing.lg,
   },
   loadingLogo: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 217, 255, 0.1)',
+    width: 88,
+    height: 88,
+    borderRadius: radius.xl,
+    backgroundColor: colors.accent.light,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 217, 255, 0.3)',
+    borderWidth: 2,
+    borderColor: colors.accent.primary,
   },
   loadingEmoji: {
-    fontSize: 36,
+    fontSize: 40,
   },
   keyboardView: {
     flex: 1,
@@ -347,185 +334,135 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl,
     justifyContent: 'center',
-  },
-
-  // Decorative circles
-  decorCircle1: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(0, 217, 255, 0.03)',
-    top: -100,
-    right: -100,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(14, 165, 233, 0.05)',
-    bottom: 100,
-    left: -80,
-  },
-  decorCircle3: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(0, 217, 255, 0.02)',
-    top: height * 0.4,
-    right: -50,
   },
 
   // Logo
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: spacing.xxl,
   },
   logoWrapper: {
     position: 'relative',
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   logo: {
-    width: 88,
-    height: 88,
-    borderRadius: 28,
+    width: 100,
+    height: 100,
+    borderRadius: radius.card,
+    backgroundColor: colors.accent.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    ...shadows.accent,
   },
   logoGlow: {
     position: 'absolute',
-    width: 88,
-    height: 88,
-    borderRadius: 28,
-    backgroundColor: '#00D9FF',
+    width: 100,
+    height: 100,
+    borderRadius: radius.card,
+    backgroundColor: colors.accent.primary,
     opacity: 0.3,
     top: 0,
     left: 0,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#00D9FF',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 20,
-      },
-    }),
   },
   logoEmoji: {
-    fontSize: 40,
+    fontSize: 48,
   },
   appName: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -1,
-    marginBottom: 8,
+    ...typography.display,
+    color: colors.text.inverse,
+    marginBottom: spacing.sm,
   },
   taglineContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.xs,
   },
   tagline: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.6)',
-    fontWeight: '500',
+    ...typography.body,
+    color: colors.text.tertiary,
   },
 
-  // Form Card - Glassmorphism
+  // Form Card
   formCard: {
-    backgroundColor: Platform.OS === 'android' ? '#1E293B' : 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 32,
-    borderWidth: Platform.OS === 'android' ? 2 : 1,
-    borderColor: Platform.OS === 'android' ? '#00D9FF' : 'rgba(255, 255, 255, 0.08)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 24,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    ...shadows.lg,
   },
   formHeader: {
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   formTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
+    ...typography.h2,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   formSubtitle: {
-    fontSize: 14,
-    color: Platform.OS === 'android' ? '#94A3B8' : 'rgba(255,255,255,0.5)',
-    lineHeight: 20,
+    ...typography.body,
+    color: colors.text.secondary,
   },
 
   // Input
   inputWrapper: {
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Platform.OS === 'android' ? '#0F172A' : 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 14,
+    backgroundColor: colors.surface.secondary,
+    borderRadius: radius.button,
     borderWidth: 2,
-    borderColor: Platform.OS === 'android' ? '#334155' : 'rgba(255, 255, 255, 0.1)',
+    borderColor: colors.border.light,
     overflow: 'hidden',
   },
   countryCode: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-    gap: 8,
-    backgroundColor: Platform.OS === 'android' ? '#1E293B' : 'transparent',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: colors.surface.tertiary,
   },
   flag: {
     fontSize: 22,
   },
   countryCodeText: {
-    fontSize: 16,
-    color: Platform.OS === 'android' ? '#E2E8F0' : 'rgba(255,255,255,0.7)',
-    fontWeight: '700',
+    ...typography.label,
+    color: colors.text.primary,
   },
   inputDivider: {
     width: 2,
     height: 32,
-    backgroundColor: Platform.OS === 'android' ? '#334155' : 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.border.light,
   },
   input: {
     flex: 1,
     height: 56,
-    paddingHorizontal: 16,
-    fontSize: 17,
-    color: '#FFFFFF',
+    paddingHorizontal: spacing.md,
+    ...typography.body,
+    color: colors.text.primary,
     fontWeight: '600',
   },
 
   // Submit Button
   submitButton: {
-    borderRadius: 16,
+    borderRadius: radius.button,
     overflow: 'hidden',
   },
-  submitButtonGradient: {
+  submitButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 18,
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.accent.primary,
+    borderRadius: radius.button,
+    ...shadows.accent,
   },
   submitButtonPressed: {
     transform: [{ scale: 0.98 }],
@@ -535,9 +472,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
+    ...typography.label,
     fontSize: 17,
     fontWeight: '700',
-    color: '#0A1628',
+    color: colors.text.primary,
   },
 
   // Footer
@@ -546,12 +484,12 @@ const styles = StyleSheet.create({
   },
   footer: {
     textAlign: 'center',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.4)',
+    ...typography.caption,
+    color: colors.text.tertiary,
     lineHeight: 20,
   },
   footerLink: {
-    color: '#00D9FF',
+    color: colors.accent.primary,
     fontWeight: '500',
   },
 });

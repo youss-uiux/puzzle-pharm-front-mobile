@@ -1,3 +1,8 @@
+/**
+ * Search Screen - Client
+ * Modern Apothecary Design System
+ * Premium search experience with tactile interactions
+ */
 import { useState, useRef, useEffect } from 'react';
 import {
   Alert,
@@ -8,7 +13,9 @@ import {
   StyleSheet,
   Pressable,
   TextInput,
-  Animated
+  Animated,
+  View as RNView,
+  Text,
 } from 'react-native';
 import { ScrollView, Spinner, View } from 'tamagui';
 import { Search as SearchIcon, Send, CheckCircle, Sparkles, Pill } from 'lucide-react-native';
@@ -16,8 +23,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../_layout';
-import { Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  shadows,
+  BackgroundShapes,
+  Button,
+} from '../../components/design-system';
 
 export default function SearchScreen() {
   const { session } = useAuth();
@@ -28,19 +42,20 @@ export default function SearchScreen() {
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
   const successScale = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 700,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 600,
+        damping: 20,
+        stiffness: 90,
         useNativeDriver: true,
       }),
     ]).start();
@@ -97,12 +112,9 @@ export default function SearchScreen() {
 
   if (success) {
     return (
-      <View style={styles.container}>
+      <RNView style={styles.container}>
         <StatusBar style="light" />
-        <LinearGradient
-          colors={['#0A1628', '#132F4C', '#0A1628']}
-          style={StyleSheet.absoluteFill}
-        />
+        <BackgroundShapes variant="search" />
 
         <SafeAreaView style={styles.successContainer}>
           <Animated.View
@@ -111,12 +123,9 @@ export default function SearchScreen() {
               { transform: [{ scale: successScale }] }
             ]}
           >
-            <LinearGradient
-              colors={['#10B981', '#059669']}
-              style={styles.successIcon}
-            >
-              <CheckCircle size={48} color="#FFFFFF" />
-            </LinearGradient>
+            <RNView style={styles.successIcon}>
+              <CheckCircle size={48} color={colors.surface.primary} />
+            </RNView>
 
             <Text style={styles.successTitle}>Demande envoyée !</Text>
             <Text style={styles.successText}>
@@ -124,40 +133,23 @@ export default function SearchScreen() {
               Vous serez notifié dès qu'une réponse arrive.
             </Text>
 
-            <Pressable
+            <Button
+              title="Nouvelle recherche"
               onPress={() => setSuccess(false)}
-              style={({ pressed }) => [
-                styles.successButton,
-                pressed && styles.successButtonPressed
-              ]}
-            >
-              <LinearGradient
-                colors={['#00D9FF', '#0EA5E9']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.successButtonGradient}
-              >
-                <Text style={styles.successButtonText}>Nouvelle recherche</Text>
-              </LinearGradient>
-            </Pressable>
+              variant="primary"
+              size="large"
+              fullWidth
+            />
           </Animated.View>
         </SafeAreaView>
-      </View>
+      </RNView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <StatusBar style="light" />
-
-      <LinearGradient
-        colors={['#0A1628', '#132F4C', '#0A1628']}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Decorative */}
-      <View style={styles.decorCircle1} />
-      <View style={styles.decorCircle2} />
+      <BackgroundShapes variant="search" />
 
       <SafeAreaView style={styles.safeArea}>
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
@@ -181,75 +173,74 @@ export default function SearchScreen() {
                   }
                 ]}
               >
-                <View style={styles.headerIconContainer}>
-                  <LinearGradient
-                    colors={['#00D9FF', '#0EA5E9']}
-                    style={styles.headerIcon}
-                  >
-                    <Pill size={20} color="#0A1628" />
-                  </LinearGradient>
-                </View>
+                <RNView style={styles.headerIconContainer}>
+                  <RNView style={styles.headerIcon}>
+                    <Pill size={24} color={colors.text.primary} />
+                  </RNView>
+                </RNView>
                 <Text style={styles.headerTitle}>Rechercher</Text>
                 <Text style={styles.headerSubtitle}>
                   Décrivez le médicament que vous cherchez
                 </Text>
               </Animated.View>
 
-              {/* Form */}
+              {/* Form Card */}
               <Animated.View
                 style={[
                   styles.formCard,
                   {
                     opacity: fadeAnim,
-                    transform: [{ translateY: Animated.multiply(slideAnim, 1.3) }]
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
                   }
                 ]}
               >
                 {/* Nom du médicament */}
-                <View style={styles.formGroup}>
+                <RNView style={styles.formGroup}>
                   <Text style={styles.label}>
                     Nom du médicament <Text style={styles.required}>*</Text>
                   </Text>
-                  <View style={styles.inputContainer}>
-                    <SearchIcon size={20} color="rgba(255,255,255,0.4)" style={styles.inputIcon} />
+                  <RNView style={styles.inputContainer}>
+                    <SearchIcon size={20} color={colors.text.tertiary} style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Ex: Doliprane 1000mg..."
-                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      placeholderTextColor={colors.text.tertiary}
                       value={medicament}
                       onChangeText={setMedicament}
                       returnKeyType="next"
+                      selectionColor={colors.accent.primary}
                     />
-                  </View>
-                </View>
+                  </RNView>
+                </RNView>
 
                 {/* Description */}
-                <View style={styles.formGroup}>
+                <RNView style={styles.formGroup}>
                   <Text style={styles.labelOptional}>Détails (optionnel)</Text>
                   <TextInput
                     style={styles.textArea}
                     placeholder="Dosage, forme, marque..."
-                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    placeholderTextColor={colors.text.tertiary}
                     value={description}
                     onChangeText={setDescription}
                     multiline
                     numberOfLines={4}
                     textAlignVertical="top"
+                    selectionColor={colors.accent.primary}
                   />
-                </View>
+                </RNView>
               </Animated.View>
 
-              {/* Info */}
+              {/* Info Card */}
               <Animated.View
                 style={[
                   styles.infoCard,
                   {
                     opacity: fadeAnim,
-                    transform: [{ translateY: Animated.multiply(slideAnim, 1.5) }]
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.4) }]
                   }
                 ]}
               >
-                <Sparkles size={18} color="#00D9FF" />
+                <Sparkles size={18} color={colors.accent.primary} />
                 <Text style={styles.infoText}>
                   Notre équipe vous répond en temps réel avec les pharmacies disponibles.
                 </Text>
@@ -261,7 +252,7 @@ export default function SearchScreen() {
                   styles.buttonContainer,
                   {
                     opacity: fadeAnim,
-                    transform: [{ translateY: Animated.multiply(slideAnim, 1.7) }]
+                    transform: [{ translateY: Animated.multiply(slideAnim, 1.6) }]
                   }
                 ]}
               >
@@ -274,38 +265,33 @@ export default function SearchScreen() {
                     (!medicament.trim() || loading) && styles.submitButtonDisabled
                   ]}
                 >
-                  <LinearGradient
-                    colors={medicament.trim() && !loading ? ['#00D9FF', '#0EA5E9'] : ['#374151', '#374151']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.submitButtonGradient}
-                  >
+                  <RNView style={styles.submitButtonInner}>
                     {loading ? (
                       <>
-                        <Spinner size="small" color="#0A1628" />
+                        <Spinner size="small" color={colors.text.primary} />
                         <Text style={styles.submitButtonText}>Envoi...</Text>
                       </>
                     ) : (
                       <>
-                        <Send size={20} color="#0A1628" />
+                        <Send size={20} color={colors.text.primary} />
                         <Text style={styles.submitButtonText}>Envoyer la demande</Text>
                       </>
                     )}
-                  </LinearGradient>
+                  </RNView>
                 </Pressable>
               </Animated.View>
             </ScrollView>
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </SafeAreaView>
-    </View>
+    </RNView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A1628',
+    backgroundColor: colors.background.primary,
   },
   safeArea: {
     flex: 1,
@@ -317,149 +303,127 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 140,
     flexGrow: 1,
   },
 
-  // Decorative
-  decorCircle1: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(0, 217, 255, 0.03)',
-    top: 100,
-    right: -60,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(16, 185, 129, 0.03)',
-    bottom: 200,
-    left: -40,
-  },
-
   // Header
   header: {
-    paddingTop: 16,
-    paddingBottom: 32,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
     alignItems: 'center',
   },
   headerIconContainer: {
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: radius.lg,
+    backgroundColor: colors.accent.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    ...shadows.accent,
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginBottom: 8,
+    ...typography.h1,
+    color: colors.text.inverse,
+    marginBottom: spacing.sm,
   },
   headerSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.5)',
+    ...typography.body,
+    color: colors.text.tertiary,
     textAlign: 'center',
   },
 
-  // Form
+  // Form Card
   formCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.md,
   },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 10,
+    ...typography.label,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
   },
   labelOptional: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 10,
+    ...typography.label,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
   },
   required: {
-    color: '#EF4444',
+    color: colors.error.primary,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.surface.secondary,
+    borderRadius: radius.button,
+    borderWidth: 2,
+    borderColor: colors.border.light,
   },
   inputIcon: {
-    marginLeft: 16,
+    marginLeft: spacing.md,
   },
   input: {
     flex: 1,
-    height: 54,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '500',
+    height: 56,
+    paddingHorizontal: spacing.md,
+    ...typography.body,
+    color: colors.text.primary,
   },
   textArea: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 16,
-    fontSize: 16,
-    color: '#FFFFFF',
+    backgroundColor: colors.surface.secondary,
+    borderRadius: radius.button,
+    borderWidth: 2,
+    borderColor: colors.border.light,
+    padding: spacing.md,
+    ...typography.body,
+    color: colors.text.primary,
     minHeight: 120,
-    fontWeight: '500',
   },
 
-  // Info
+  // Info Card
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(0, 217, 255, 0.08)',
-    borderRadius: 14,
-    padding: 16,
-    gap: 12,
+    backgroundColor: colors.accent.ultraLight,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.md,
     alignItems: 'flex-start',
+    marginBottom: spacing.lg,
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    color: '#00D9FF',
+    ...typography.bodySmall,
+    color: colors.accent.secondary,
     lineHeight: 20,
   },
 
-  // Button Container
+  // Submit Button
   buttonContainer: {
-    marginTop: 24,
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   submitButton: {
-    borderRadius: 16,
+    borderRadius: radius.button,
     overflow: 'hidden',
   },
-  submitButtonGradient: {
+  submitButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 18,
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.accent.primary,
+    borderRadius: radius.button,
+    ...shadows.accent,
   },
   submitButtonPressed: {
     transform: [{ scale: 0.98 }],
@@ -469,57 +433,43 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
+    ...typography.label,
+    color: colors.text.primary,
     fontSize: 17,
     fontWeight: '700',
-    color: '#0A1628',
   },
 
-  // Success
+  // Success State
   successContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: spacing.xxl,
   },
   successContent: {
     alignItems: 'center',
+    width: '100%',
   },
   successIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.success.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: spacing.xl,
+    ...shadows.lg,
   },
   successTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 12,
+    ...typography.h2,
+    color: colors.text.inverse,
+    marginBottom: spacing.md,
   },
   successText: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.6)',
+    ...typography.body,
+    color: colors.text.tertiary,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 36,
-  },
-  successButton: {
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  successButtonPressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.9,
-  },
-  successButtonGradient: {
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-  },
-  successButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0A1628',
+    marginBottom: spacing.xl,
   },
 });

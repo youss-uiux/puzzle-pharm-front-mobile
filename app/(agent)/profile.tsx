@@ -1,4 +1,8 @@
-import { Alert, StyleSheet, Pressable, Animated } from 'react-native';
+/**
+ * Profile Screen - Agent
+ * Modern Apothecary Design System
+ */
+import { Alert, StyleSheet, Pressable, Animated, View as RNView, Text } from 'react-native';
 import { ScrollView, View } from 'tamagui';
 import {
   Phone,
@@ -13,27 +17,34 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../_layout';
-import { Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  shadows,
+  BackgroundShapes,
+} from '../../components/design-system';
 
 export default function AgentProfileScreen() {
   const { profile, signOut } = useAuth();
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 700,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 600,
+        damping: 20,
+        stiffness: 90,
         useNativeDriver: true,
       }),
     ]).start();
@@ -55,23 +66,16 @@ export default function AgentProfileScreen() {
   };
 
   const menuItems = [
-    { icon: Headphones, label: 'Paramètres Agent', color: '#10B981' },
-    { icon: Bell, label: 'Notifications', color: '#F59E0B' },
-    { icon: Shield, label: 'Sécurité', color: '#3B82F6' },
-    { icon: HelpCircle, label: 'Aide', color: '#8B5CF6' },
+    { icon: Headphones, label: 'Paramètres Agent', color: colors.success.primary },
+    { icon: Bell, label: 'Notifications', color: colors.accent.primary },
+    { icon: Shield, label: 'Sécurité', color: colors.info.primary },
+    { icon: HelpCircle, label: 'Aide', color: colors.warning.primary },
   ];
 
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <StatusBar style="light" />
-
-      <LinearGradient
-        colors={['#0A1628', '#132F4C', '#0A1628']}
-        style={StyleSheet.absoluteFill}
-      />
-
-      <View style={styles.decorCircle1} />
-      <View style={styles.decorCircle2} />
+      <BackgroundShapes variant="profile" />
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -98,41 +102,38 @@ export default function AgentProfileScreen() {
               styles.profileCard,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
+                transform: [{ translateY: Animated.multiply(slideAnim, 1.1) }]
               }
             ]}
           >
-            <LinearGradient
-              colors={['#10B981', '#059669']}
-              style={styles.avatar}
-            >
-              <Headphones size={32} color="#FFFFFF" />
-            </LinearGradient>
+            <RNView style={styles.avatar}>
+              <Headphones size={32} color={colors.text.inverse} />
+            </RNView>
 
-            <View style={styles.profileInfo}>
+            <RNView style={styles.profileInfo}>
               <Text style={styles.profileName}>
                 {profile?.full_name || 'Agent'}
               </Text>
-              <View style={styles.profilePhone}>
-                <Phone size={14} color="rgba(255,255,255,0.4)" />
+              <RNView style={styles.profilePhone}>
+                <Phone size={14} color={colors.text.tertiary} />
                 <Text style={styles.profilePhoneText}>
                   {profile?.phone || 'Non renseigné'}
                 </Text>
-              </View>
-              <View style={styles.roleBadge}>
-                <Sparkles size={12} color="#10B981" />
+              </RNView>
+              <RNView style={styles.roleBadge}>
+                <Sparkles size={12} color={colors.success.primary} />
                 <Text style={styles.roleBadgeText}>Agent Call Center</Text>
-              </View>
-            </View>
+              </RNView>
+            </RNView>
           </Animated.View>
 
-          {/* Menu */}
+          {/* Menu Card */}
           <Animated.View
             style={[
               styles.menuCard,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: Animated.multiply(slideAnim, 1.4) }]
+                transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
               }
             ]}
           >
@@ -150,11 +151,11 @@ export default function AgentProfileScreen() {
                     isLast && styles.menuItemLast
                   ]}
                 >
-                  <View style={[styles.menuIconContainer, { backgroundColor: `${item.color}15` }]}>
+                  <RNView style={[styles.menuIconContainer, { backgroundColor: `${item.color}15` }]}>
                     <Icon size={20} color={item.color} />
-                  </View>
+                  </RNView>
                   <Text style={styles.menuLabel}>{item.label}</Text>
-                  <ChevronRight size={20} color="rgba(255,255,255,0.3)" />
+                  <ChevronRight size={20} color={colors.text.tertiary} />
                 </Pressable>
               );
             })}
@@ -164,7 +165,7 @@ export default function AgentProfileScreen() {
           <Animated.View
             style={{
               opacity: fadeAnim,
-              transform: [{ translateY: Animated.multiply(slideAnim, 1.6) }]
+              transform: [{ translateY: Animated.multiply(slideAnim, 1.3) }]
             }}
           >
             <Pressable
@@ -174,7 +175,7 @@ export default function AgentProfileScreen() {
                 pressed && styles.logoutButtonPressed
               ]}
             >
-              <LogOut size={20} color="#EF4444" />
+              <LogOut size={20} color={colors.error.primary} />
               <Text style={styles.logoutText}>Se déconnecter</Text>
             </Pressable>
           </Animated.View>
@@ -183,14 +184,14 @@ export default function AgentProfileScreen() {
           <Text style={styles.version}>PuzzlePharm Agent v1.0.0</Text>
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </RNView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A1628',
+    backgroundColor: colors.background.primary,
   },
   safeArea: {
     flex: 1,
@@ -202,114 +203,91 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
 
-  // Decorative
-  decorCircle1: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(16, 185, 129, 0.03)',
-    top: -50,
-    right: -60,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(245, 158, 11, 0.03)',
-    bottom: 300,
-    left: -40,
-  },
-
   // Header
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   headerTitle: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    ...typography.h1,
+    color: colors.text.inverse,
   },
 
   // Profile Card
   profileCard: {
-    marginHorizontal: 24,
-    marginBottom: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 24,
-    padding: 24,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
+    padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    ...shadows.md,
   },
   avatar: {
     width: 72,
     height: 72,
-    borderRadius: 24,
+    borderRadius: radius.avatar,
+    backgroundColor: colors.success.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 18,
+    marginRight: spacing.lg,
+    ...shadows.lg,
   },
   profileInfo: {
     flex: 1,
   },
   profileName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   profilePhone: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
+    gap: spacing.xs,
+    marginBottom: spacing.md,
   },
   profilePhoneText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
+    ...typography.body,
+    color: colors.text.secondary,
   },
   roleBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: colors.success.light,
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.xs,
   },
   roleBadgeText: {
-    fontSize: 12,
+    ...typography.caption,
+    color: colors.success.secondary,
     fontWeight: '600',
-    color: '#10B981',
   },
 
   // Menu Card
   menuCard: {
-    marginHorizontal: 24,
-    marginBottom: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    ...shadows.md,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: colors.border.light,
   },
   menuItemPressed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.surface.secondary,
   },
   menuItemLast: {
     borderBottomWidth: 0,
@@ -317,46 +295,43 @@ const styles = StyleSheet.create({
   menuIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: radius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: spacing.md,
   },
   menuLabel: {
     flex: 1,
-    fontSize: 16,
+    ...typography.body,
+    color: colors.text.primary,
     fontWeight: '500',
-    color: '#FFFFFF',
   },
 
   // Logout Button
   logoutButton: {
-    marginHorizontal: 24,
-    marginBottom: 24,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: 16,
-    paddingVertical: 16,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.error.light,
+    borderRadius: radius.button,
+    paddingVertical: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.2)',
+    gap: spacing.sm,
   },
   logoutButtonPressed: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    opacity: 0.8,
   },
   logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#EF4444',
+    ...typography.label,
+    color: colors.error.primary,
   },
 
   // Version
   version: {
     textAlign: 'center',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.3)',
-    paddingBottom: 20,
+    ...typography.caption,
+    color: colors.text.tertiary,
+    paddingBottom: spacing.lg,
   },
 });

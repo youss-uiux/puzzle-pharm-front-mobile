@@ -1,5 +1,10 @@
+/**
+ * History Screen - Client
+ * Modern Apothecary Design System
+ * Demandes history with premium card design
+ */
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { RefreshControl, Linking, StyleSheet, Platform, Pressable, Animated } from 'react-native';
+import { RefreshControl, Linking, StyleSheet, Platform, Pressable, Animated, View as RNView, Text } from 'react-native';
 import { ScrollView, Spinner, View } from 'tamagui';
 import {
   Clock,
@@ -15,8 +20,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase, Demande, Proposition } from '../../lib/supabase';
 import { useAuth } from '../_layout';
-import { Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  shadows,
+  BackgroundShapes,
+} from '../../components/design-system';
 
 type DemandeWithPropositions = Demande & {
   propositions: Proposition[];
@@ -31,18 +42,19 @@ export default function HistoryScreen() {
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 700,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 600,
+        damping: 20,
+        stiffness: 90,
         useNativeDriver: true,
       }),
     ]).start();
@@ -114,13 +126,13 @@ export default function HistoryScreen() {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'en_attente':
-        return { label: 'En attente', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)', icon: Clock };
+        return { label: 'En attente', color: colors.warning.primary, bgColor: colors.warning.light, icon: Clock };
       case 'en_cours':
-        return { label: 'En cours', color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)', icon: AlertCircle };
+        return { label: 'En cours', color: colors.info.primary, bgColor: colors.info.light, icon: AlertCircle };
       case 'traite':
-        return { label: 'Traité', color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.15)', icon: CheckCircle };
+        return { label: 'Traité', color: colors.success.primary, bgColor: colors.success.light, icon: CheckCircle };
       default:
-        return { label: status, color: 'rgba(255,255,255,0.5)', bgColor: 'rgba(255, 255, 255, 0.05)', icon: Clock };
+        return { label: status, color: colors.text.tertiary, bgColor: colors.surface.secondary, icon: Clock };
     }
   };
 
@@ -145,16 +157,9 @@ export default function HistoryScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <StatusBar style="light" />
-
-      <LinearGradient
-        colors={['#0A1628', '#132F4C', '#0A1628']}
-        style={StyleSheet.absoluteFill}
-      />
-
-      <View style={styles.decorCircle1} />
-      <View style={styles.decorCircle2} />
+      <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -164,7 +169,7 @@ export default function HistoryScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#00D9FF"
+              tintColor={colors.accent.primary}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -187,10 +192,10 @@ export default function HistoryScreen() {
 
           {/* Liste */}
           {loading ? (
-            <View style={styles.loadingContainer}>
-              <Spinner size="large" color="#00D9FF" />
+            <RNView style={styles.loadingContainer}>
+              <Spinner size="large" color={colors.accent.primary} />
               <Text style={styles.loadingText}>Chargement...</Text>
-            </View>
+            </RNView>
           ) : demandes.length === 0 ? (
             <Animated.View
               style={[
@@ -201,9 +206,9 @@ export default function HistoryScreen() {
                 }
               ]}
             >
-              <View style={styles.emptyIcon}>
-                <FileText size={48} color="rgba(255,255,255,0.3)" />
-              </View>
+              <RNView style={styles.emptyIcon}>
+                <FileText size={48} color={colors.text.tertiary} />
+              </RNView>
               <Text style={styles.emptyTitle}>Aucune demande</Text>
               <Text style={styles.emptyText}>
                 Vous n'avez pas encore effectué de recherche
@@ -223,10 +228,10 @@ export default function HistoryScreen() {
                 const hasPropositions = demande.propositions && demande.propositions.length > 0;
 
                 return (
-                  <View key={demande.id} style={styles.demandeCard}>
+                  <RNView key={demande.id} style={styles.demandeCard}>
                     {/* Header */}
-                    <View style={styles.demandeHeader}>
-                      <View style={styles.demandeInfo}>
+                    <RNView style={styles.demandeHeader}>
+                      <RNView style={styles.demandeInfo}>
                         <Text style={styles.demandeMedicament}>{demande.medicament_nom}</Text>
                         {demande.description && (
                           <Text style={styles.demandeDescription} numberOfLines={2}>
@@ -234,14 +239,14 @@ export default function HistoryScreen() {
                           </Text>
                         )}
                         <Text style={styles.demandeDate}>{formatDate(demande.created_at)}</Text>
-                      </View>
-                      <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+                      </RNView>
+                      <RNView style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
                         <StatusIcon size={12} color={statusConfig.color} />
                         <Text style={[styles.statusText, { color: statusConfig.color }]}>
                           {statusConfig.label}
                         </Text>
-                      </View>
-                    </View>
+                      </RNView>
+                    </RNView>
 
                     {/* Propositions */}
                     {hasPropositions && (
@@ -257,31 +262,31 @@ export default function HistoryScreen() {
                             {demande.propositions.length} pharmacie{demande.propositions.length > 1 ? 's' : ''} disponible{demande.propositions.length > 1 ? 's' : ''}
                           </Text>
                           {isExpanded ? (
-                            <ChevronUp size={20} color="#00D9FF" />
+                            <ChevronUp size={20} color={colors.accent.primary} />
                           ) : (
-                            <ChevronDown size={20} color="#00D9FF" />
+                            <ChevronDown size={20} color={colors.accent.primary} />
                           )}
                         </Pressable>
 
                         {isExpanded && (
-                          <View style={styles.propositionsList}>
+                          <RNView style={styles.propositionsList}>
                             {demande.propositions.map((proposition) => (
-                              <View key={proposition.id} style={styles.propositionCard}>
-                                <View style={styles.propositionInfo}>
+                              <RNView key={proposition.id} style={styles.propositionCard}>
+                                <RNView style={styles.propositionInfo}>
                                   <Text style={styles.propositionName}>{proposition.pharmacie_nom}</Text>
-                                  <View style={styles.propositionLocation}>
-                                    <MapPin size={12} color="rgba(255,255,255,0.4)" />
+                                  <RNView style={styles.propositionLocation}>
+                                    <MapPin size={12} color={colors.text.tertiary} />
                                     <Text style={styles.propositionAddress}>
                                       {proposition.quartier}
                                       {proposition.adresse && ` - ${proposition.adresse}`}
                                     </Text>
-                                  </View>
-                                  <View style={styles.priceBadge}>
+                                  </RNView>
+                                  <RNView style={styles.priceBadge}>
                                     <Text style={styles.priceText}>
                                       {proposition.prix.toLocaleString()} FCFA
                                     </Text>
-                                  </View>
-                                </View>
+                                  </RNView>
+                                </RNView>
 
                                 {proposition.telephone && (
                                   <Pressable
@@ -291,35 +296,33 @@ export default function HistoryScreen() {
                                       pressed && styles.callButtonPressed
                                     ]}
                                   >
-                                    <LinearGradient
-                                      colors={['#10B981', '#059669']}
-                                      style={styles.callButtonGradient}
-                                    >
-                                      <Phone size={18} color="#FFFFFF" />
-                                    </LinearGradient>
+                                    <RNView style={styles.callButtonInner}>
+                                      <Phone size={18} color={colors.text.primary} />
+                                    </RNView>
                                   </Pressable>
                                 )}
-                              </View>
+                              </RNView>
                             ))}
-                          </View>
+                          </RNView>
                         )}
                       </>
                     )}
-                  </View>
+                  </RNView>
                 );
               })}
             </Animated.View>
           )}
+          <RNView style={{ height: 120 }} />
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </RNView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A1628',
+    backgroundColor: colors.background.primary,
   },
   safeArea: {
     flex: 1,
@@ -328,134 +331,108 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 120,
-  },
-
-  // Decorative
-  decorCircle1: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(0, 217, 255, 0.03)',
-    top: -50,
-    right: -60,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(16, 185, 129, 0.03)',
-    bottom: 300,
-    left: -40,
+    paddingBottom: 20,
   },
 
   // Header
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   headerTitle: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginBottom: 8,
+    ...typography.h1,
+    color: colors.text.inverse,
+    marginBottom: spacing.xs,
   },
   headerSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.5)',
+    ...typography.body,
+    color: colors.text.tertiary,
   },
 
   // Loading
   loadingContainer: {
-    paddingTop: 80,
+    paddingTop: spacing.xxxl,
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
+    marginTop: spacing.md,
+    ...typography.body,
+    color: colors.text.tertiary,
   },
 
   // Empty
   emptyCard: {
-    marginHorizontal: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 24,
-    padding: 40,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
+    padding: spacing.xxl,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    ...shadows.md,
   },
   emptyIcon: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    ...typography.h3,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
   },
   emptyText: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.5)',
+    ...typography.body,
+    color: colors.text.secondary,
     textAlign: 'center',
   },
 
   // Demande Card
   demandeCard: {
-    marginHorizontal: 24,
-    marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
     overflow: 'hidden',
+    ...shadows.md,
   },
   demandeHeader: {
-    padding: 18,
+    padding: spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
   demandeInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   demandeMedicament: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    ...typography.h4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   demandeDescription: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 8,
+    ...typography.bodySmall,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
   },
   demandeDate: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.3)',
+    ...typography.caption,
+    color: colors.text.tertiary,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
   },
   statusText: {
-    fontSize: 11,
+    ...typography.caption,
     fontWeight: '600',
   },
 
@@ -464,77 +441,77 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    borderTopColor: colors.border.light,
   },
   propositionsTogglePressed: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.surface.secondary,
   },
   propositionsCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#00D9FF',
+    ...typography.label,
+    color: colors.accent.primary,
   },
   propositionsList: {
-    padding: 12,
+    padding: spacing.md,
     paddingTop: 0,
-    gap: 10,
+    gap: spacing.sm,
   },
   propositionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 14,
-    padding: 14,
+    backgroundColor: colors.surface.secondary,
+    borderRadius: radius.lg,
+    padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
   },
   propositionInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   propositionName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    ...typography.label,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   propositionLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
   },
   propositionAddress: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.4)',
+    ...typography.caption,
+    color: colors.text.tertiary,
     flex: 1,
   },
   priceBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: colors.success.light,
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
   },
   priceText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#10B981',
+    ...typography.label,
+    color: colors.success.primary,
   },
   callButton: {
-    borderRadius: 14,
+    borderRadius: radius.md,
     overflow: 'hidden',
   },
   callButtonPressed: {
     transform: [{ scale: 0.95 }],
     opacity: 0.9,
   },
-  callButtonGradient: {
-    width: 44,
-    height: 44,
+  callButtonInner: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    ...shadows.accent,
   },
 });
 

@@ -1,3 +1,8 @@
+/**
+ * Demandes Screen - Agent
+ * Modern Apothecary Design System
+ * List and manage medication requests with premium design
+ */
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   RefreshControl,
@@ -10,7 +15,9 @@ import {
   StyleSheet,
   Pressable,
   Animated,
-  TextInput
+  TextInput,
+  View as RNView,
+  Text
 } from 'react-native';
 import { ScrollView, Spinner, View } from 'tamagui';
 import {
@@ -31,8 +38,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase, Demande } from '../../lib/supabase';
 import { useAuth } from '../_layout';
-import { Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  shadows,
+  BackgroundShapes,
+} from '../../components/design-system';
 
 type DemandeWithClient = Demande & {
   profiles: {
@@ -79,18 +92,19 @@ export default function DemandesScreen() {
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 700,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 600,
+        damping: 20,
+        stiffness: 90,
         useNativeDriver: true,
       }),
     ]).start();
@@ -194,10 +208,10 @@ export default function DemandesScreen() {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'en_attente': return { label: 'En attente', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.15)', icon: Clock };
-      case 'en_cours': return { label: 'En cours', color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.15)', icon: AlertCircle };
-      case 'traite': return { label: 'Traité', color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.15)', icon: CheckCircle };
-      default: return { label: status, color: 'rgba(255,255,255,0.5)', bgColor: 'rgba(255, 255, 255, 0.05)', icon: Clock };
+      case 'en_attente': return { label: 'En attente', color: colors.warning.primary, bgColor: colors.warning.light, icon: Clock };
+      case 'en_cours': return { label: 'En cours', color: colors.info.primary, bgColor: colors.info.light, icon: AlertCircle };
+      case 'traite': return { label: 'Traité', color: colors.success.primary, bgColor: colors.success.light, icon: CheckCircle };
+      default: return { label: status, color: colors.text.tertiary, bgColor: colors.surface.secondary, icon: Clock };
     }
   };
 
@@ -221,11 +235,9 @@ export default function DemandesScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <StatusBar style="light" />
-      <LinearGradient colors={['#0A1628', '#132F4C', '#0A1628']} style={StyleSheet.absoluteFill} />
-      <View style={styles.decorCircle1} />
-      <View style={styles.decorCircle2} />
+      <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
@@ -235,7 +247,7 @@ export default function DemandesScreen() {
         </Animated.View>
 
         {/* Filtres */}
-        <View style={styles.filterContainer}>
+        <RNView style={styles.filterContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
             {filters.map((f) => (
               <Pressable
@@ -247,26 +259,26 @@ export default function DemandesScreen() {
               </Pressable>
             ))}
           </ScrollView>
-        </View>
+        </RNView>
 
         {/* Liste */}
         <ScrollView
           style={styles.listContainer}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent.primary} />}
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
-            <View style={styles.loadingContainer}>
-              <Spinner size="large" color="#10B981" />
+            <RNView style={styles.loadingContainer}>
+              <Spinner size="large" color={colors.accent.primary} />
               <Text style={styles.loadingText}>Chargement...</Text>
-            </View>
+            </RNView>
           ) : demandes.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <View style={styles.emptyIcon}><Pill size={48} color="rgba(255,255,255,0.3)" /></View>
+            <RNView style={styles.emptyCard}>
+              <RNView style={styles.emptyIcon}><Pill size={48} color={colors.text.tertiary} /></RNView>
               <Text style={styles.emptyTitle}>Aucune demande</Text>
               <Text style={styles.emptyText}>{filter !== 'all' ? `Pas de demande "${filter.replace('_', ' ')}"` : 'Les nouvelles demandes apparaîtront ici'}</Text>
-            </View>
+            </RNView>
           ) : (
             demandes.map((demande) => {
               const statusConfig = getStatusConfig(demande.status);
@@ -275,9 +287,9 @@ export default function DemandesScreen() {
               const hasPropositions = demande.propositions && demande.propositions.length > 0;
 
               return (
-                <View key={demande.id} style={styles.demandeCard}>
-                  <View style={[styles.statusIndicator, { backgroundColor: statusConfig.color }]} />
-                  <View style={styles.demandeContent}>
+                <RNView key={demande.id} style={styles.demandeCard}>
+                  <RNView style={[styles.statusIndicator, { backgroundColor: statusConfig.color }]} />
+                  <RNView style={styles.demandeContent}>
                     <Pressable
                       onPress={() => {
                         if (demande.status === 'traite' && hasPropositions) {
@@ -286,275 +298,279 @@ export default function DemandesScreen() {
                           openResponseModal(demande);
                         }
                       }}
-                      style={({ pressed }) => [
-                        pressed && styles.demandePressable
-                      ]}
+                      style={({ pressed }) => [pressed && styles.demandePressable]}
                     >
-                      <View style={styles.demandeHeader}>
-                        <View style={styles.demandeInfo}>
+                      <RNView style={styles.demandeHeader}>
+                        <RNView style={styles.demandeInfo}>
                           <Text style={styles.demandeMedicament} numberOfLines={1}>{demande.medicament_nom}</Text>
-                          <View style={styles.demandeClient}>
-                            <Phone size={12} color="rgba(255,255,255,0.4)" />
+                          <RNView style={styles.demandeClient}>
+                            <Phone size={12} color={colors.text.tertiary} />
                             <Text style={styles.demandeClientText}>{demande.profiles?.full_name || demande.profiles?.phone || 'Client'}</Text>
-                          </View>
-                        </View>
-                        <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+                          </RNView>
+                        </RNView>
+                        <RNView style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
                           <StatusIcon size={12} color={statusConfig.color} />
                           <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
-                        </View>
-                      </View>
+                        </RNView>
+                      </RNView>
                       {demande.description && <Text style={styles.demandeDescription} numberOfLines={2}>{demande.description}</Text>}
-                      <View style={styles.demandeFooter}>
+                      <RNView style={styles.demandeFooter}>
                         <Text style={styles.demandeTime}>{formatDate(demande.created_at)}</Text>
                         {demande.status === 'traite' && hasPropositions ? (
-                          <View style={styles.repondreButton}>
+                          <RNView style={styles.repondreButton}>
                             <Text style={styles.repondreText}>{demande.propositions!.length} proposition{demande.propositions!.length > 1 ? 's' : ''}</Text>
-                            <ChevronRight size={16} color="#10B981" style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }} />
-                          </View>
+                            <ChevronRight size={16} color={colors.accent.primary} style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }} />
+                          </RNView>
                         ) : demande.status !== 'traite' ? (
-                          <View style={styles.repondreButton}>
+                          <RNView style={styles.repondreButton}>
                             <Text style={styles.repondreText}>Répondre</Text>
-                            <ChevronRight size={16} color="#10B981" />
-                          </View>
+                            <ChevronRight size={16} color={colors.accent.primary} />
+                          </RNView>
                         ) : null}
-                      </View>
+                      </RNView>
                     </Pressable>
 
                     {/* Propositions (demandes traitées) */}
                     {isExpanded && hasPropositions && (
-                      <View style={styles.propositionsContainer}>
-                        <View style={styles.propositionsDivider} />
+                      <RNView style={styles.propositionsContainer}>
+                        <RNView style={styles.propositionsDivider} />
                         <Text style={styles.propositionsHeader}>Propositions envoyées</Text>
                         {demande.propositions!.map((prop, index) => (
-                          <View key={prop.id} style={styles.propositionItem}>
-                            <View style={styles.propositionNumberBadge}>
+                          <RNView key={prop.id} style={styles.propositionItem}>
+                            <RNView style={styles.propositionNumberBadge}>
                               <Text style={styles.propositionNumberBadgeText}>{index + 1}</Text>
-                            </View>
-                            <View style={styles.propositionDetails}>
+                            </RNView>
+                            <RNView style={styles.propositionDetails}>
                               <Text style={styles.propositionPharmacyName}>{prop.pharmacie_nom}</Text>
-                              <View style={styles.propositionRow}>
-                                <View style={styles.propositionLocation}>
-                                  <MapPin size={12} color="rgba(255,255,255,0.4)" />
+                              <RNView style={styles.propositionRow}>
+                                <RNView style={styles.propositionLocation}>
+                                  <MapPin size={12} color={colors.text.tertiary} />
                                   <Text style={styles.propositionLocationText}>{prop.quartier}</Text>
-                                </View>
+                                </RNView>
                                 {prop.adresse && (
                                   <Text style={styles.propositionAddress}> • {prop.adresse}</Text>
                                 )}
-                              </View>
+                              </RNView>
                               {prop.telephone && (
-                                <View style={styles.propositionPhone}>
-                                  <Phone size={12} color="rgba(255,255,255,0.4)" />
+                                <RNView style={styles.propositionPhone}>
+                                  <Phone size={12} color={colors.text.tertiary} />
                                   <Text style={styles.propositionPhoneText}>{prop.telephone}</Text>
-                                </View>
+                                </RNView>
                               )}
-                              <View style={styles.propositionPriceBadge}>
+                              <RNView style={styles.propositionPriceBadge}>
                                 <Text style={styles.propositionPriceText}>{prop.prix.toLocaleString()} FCFA</Text>
-                              </View>
-                            </View>
-                          </View>
+                              </RNView>
+                            </RNView>
+                          </RNView>
                         ))}
-                      </View>
+                      </RNView>
                     )}
-                  </View>
-                </View>
+                  </RNView>
+                </RNView>
               );
             })
           )}
+          <RNView style={{ height: 120 }} />
         </ScrollView>
       </SafeAreaView>
 
       {/* Modal */}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>
-        <View style={styles.modalContainer}>
-          <LinearGradient colors={['#0A1628', '#132F4C', '#0A1628']} style={StyleSheet.absoluteFill} />
+        <RNView style={styles.modalContainer}>
           <SafeAreaView style={styles.modalSafeArea}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 {/* Modal Header */}
-                <View style={styles.modalHeader}>
-                  <View>
+                <RNView style={styles.modalHeader}>
+                  <RNView>
                     <Text style={styles.modalTitle}>Répondre à la demande</Text>
                     <Text style={styles.modalSubtitle}>{selectedDemande?.medicament_nom}</Text>
-                  </View>
-                  <Pressable onPress={closeModal} style={styles.closeButton}><X size={24} color="rgba(255,255,255,0.6)" /></Pressable>
-                </View>
+                  </RNView>
+                  <Pressable onPress={closeModal} style={styles.closeButton}><X size={24} color={colors.text.tertiary} /></Pressable>
+                </RNView>
 
                 {/* Modal Content */}
                 <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                   {/* Info */}
-                  <View style={styles.infoCard}>
-                    <Sparkles size={18} color="#00D9FF" />
+                  <RNView style={styles.infoCard}>
+                    <Sparkles size={18} color={colors.accent.primary} />
                     <Text style={styles.infoText}>Ajoutez les pharmacies où le médicament est disponible avec le prix.</Text>
-                  </View>
+                  </RNView>
 
                   {/* Propositions */}
                   {propositions.map((prop, index) => (
-                    <View key={index} style={styles.propositionCard}>
-                      <View style={styles.propositionHeader}>
-                        <LinearGradient colors={['#10B981', '#059669']} style={styles.propositionNumber}>
+                    <RNView key={index} style={styles.propositionCard}>
+                      <RNView style={styles.propositionHeaderModal}>
+                        <RNView style={styles.propositionNumber}>
                           <Text style={styles.propositionNumberText}>{index + 1}</Text>
-                        </LinearGradient>
+                        </RNView>
                         <Text style={styles.propositionTitle}>Pharmacie</Text>
                         {propositions.length > 1 && (
                           <Pressable onPress={() => removeProposition(index)} style={styles.deleteButton}>
-                            <Trash2 size={18} color="#EF4444" />
+                            <Trash2 size={18} color={colors.error.primary} />
                           </Pressable>
                         )}
-                      </View>
+                      </RNView>
 
-                      <View style={styles.formGroup}>
+                      <RNView style={styles.formGroup}>
                         <Text style={styles.label}>Nom de la pharmacie <Text style={styles.required}>*</Text></Text>
-                        <TextInput style={styles.input} placeholder="Ex: Pharmacie Centrale" placeholderTextColor="rgba(255,255,255,0.3)" value={prop.pharmacie_nom} onChangeText={(v) => updateProposition(index, 'pharmacie_nom', v)} />
-                      </View>
+                        <TextInput style={styles.input} placeholder="Ex: Pharmacie Centrale" placeholderTextColor={colors.text.tertiary} value={prop.pharmacie_nom} onChangeText={(v) => updateProposition(index, 'pharmacie_nom', v)} selectionColor={colors.accent.primary} />
+                      </RNView>
 
-                      <View style={styles.formRow}>
-                        <View style={[styles.formGroup, { flex: 1 }]}>
+                      <RNView style={styles.formRow}>
+                        <RNView style={[styles.formGroup, { flex: 1 }]}>
                           <Text style={styles.label}>Prix (FCFA) <Text style={styles.required}>*</Text></Text>
-                          <TextInput style={styles.input} placeholder="2500" placeholderTextColor="rgba(255,255,255,0.3)" value={prop.prix} onChangeText={(v) => updateProposition(index, 'prix', v)} keyboardType="numeric" />
-                        </View>
-                        <View style={{ width: 12 }} />
-                        <View style={[styles.formGroup, { flex: 1 }]}>
+                          <TextInput style={styles.input} placeholder="2500" placeholderTextColor={colors.text.tertiary} value={prop.prix} onChangeText={(v) => updateProposition(index, 'prix', v)} keyboardType="numeric" selectionColor={colors.accent.primary} />
+                        </RNView>
+                        <RNView style={{ width: 12 }} />
+                        <RNView style={[styles.formGroup, { flex: 1 }]}>
                           <Text style={styles.label}>Quartier <Text style={styles.required}>*</Text></Text>
-                          <TextInput style={styles.input} placeholder="Plateau" placeholderTextColor="rgba(255,255,255,0.3)" value={prop.quartier} onChangeText={(v) => updateProposition(index, 'quartier', v)} />
-                        </View>
-                      </View>
+                          <TextInput style={styles.input} placeholder="Plateau" placeholderTextColor={colors.text.tertiary} value={prop.quartier} onChangeText={(v) => updateProposition(index, 'quartier', v)} selectionColor={colors.accent.primary} />
+                        </RNView>
+                      </RNView>
 
-                      <View style={styles.formGroup}>
+                      <RNView style={styles.formGroup}>
                         <Text style={styles.labelOptional}>Adresse (optionnel)</Text>
-                        <TextInput style={styles.input} placeholder="Rue du Commerce..." placeholderTextColor="rgba(255,255,255,0.3)" value={prop.adresse} onChangeText={(v) => updateProposition(index, 'adresse', v)} />
-                      </View>
+                        <TextInput style={styles.input} placeholder="Rue du Commerce..." placeholderTextColor={colors.text.tertiary} value={prop.adresse} onChangeText={(v) => updateProposition(index, 'adresse', v)} selectionColor={colors.accent.primary} />
+                      </RNView>
 
-                      <View style={styles.formGroup}>
+                      <RNView style={styles.formGroup}>
                         <Text style={styles.labelOptional}>Téléphone (optionnel)</Text>
-                        <TextInput style={styles.input} placeholder="90 00 00 00" placeholderTextColor="rgba(255,255,255,0.3)" value={prop.telephone} onChangeText={(v) => updateProposition(index, 'telephone', v)} keyboardType="phone-pad" />
-                      </View>
-                    </View>
+                        <TextInput style={styles.input} placeholder="90 00 00 00" placeholderTextColor={colors.text.tertiary} value={prop.telephone} onChangeText={(v) => updateProposition(index, 'telephone', v)} keyboardType="phone-pad" selectionColor={colors.accent.primary} />
+                      </RNView>
+                    </RNView>
                   ))}
 
                   {/* Add button */}
                   <Pressable onPress={addProposition} style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}>
-                    <Plus size={20} color="#10B981" />
+                    <Plus size={20} color={colors.accent.primary} />
                     <Text style={styles.addButtonText}>Ajouter une pharmacie</Text>
                   </Pressable>
                 </ScrollView>
 
                 {/* Modal Footer */}
-                <View style={styles.modalFooter}>
+                <RNView style={styles.modalFooter}>
                   <Pressable onPress={submitPropositions} disabled={submitting} style={({ pressed }) => [styles.submitButton, pressed && !submitting && styles.submitButtonPressed, submitting && styles.submitButtonDisabled]}>
-                    <LinearGradient colors={submitting ? ['#374151', '#374151'] : ['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.submitButtonGradient}>
-                      {submitting ? <><Spinner size="small" color="white" /><Text style={styles.submitButtonTextDisabled}>Envoi...</Text></> : <><Send size={20} color="#FFFFFF" /><Text style={styles.submitButtonText}>Envoyer au client</Text></>}
-                    </LinearGradient>
+                    <RNView style={styles.submitButtonInner}>
+                      {submitting ? (
+                        <>
+                          <Spinner size="small" color={colors.text.primary} />
+                          <Text style={styles.submitButtonText}>Envoi...</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Send size={20} color={colors.text.primary} />
+                          <Text style={styles.submitButtonText}>Envoyer au client</Text>
+                        </>
+                      )}
+                    </RNView>
                   </Pressable>
-                </View>
+                </RNView>
               </KeyboardAvoidingView>
             </TouchableWithoutFeedback>
           </SafeAreaView>
-        </View>
+        </RNView>
       </Modal>
-    </View>
+    </RNView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A1628' },
+  container: { flex: 1, backgroundColor: colors.background.primary },
   safeArea: { flex: 1 },
-  decorCircle1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(16, 185, 129, 0.03)', top: -50, right: -60 },
-  decorCircle2: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(245, 158, 11, 0.03)', bottom: 200, left: -40 },
 
-  header: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16 },
-  headerTitle: { fontSize: 34, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.5 },
-  headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md },
+  headerTitle: { ...typography.h1, color: colors.text.inverse },
+  headerSubtitle: { ...typography.body, color: colors.text.tertiary, marginTop: spacing.xs },
 
-  filterContainer: { paddingBottom: 12 },
-  filterScroll: { paddingHorizontal: 24, gap: 8 },
-  filterButton: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
-  filterButtonActive: { backgroundColor: '#10B981', borderColor: '#10B981' },
-  filterText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
-  filterTextActive: { color: '#FFFFFF' },
+  filterContainer: { paddingBottom: spacing.md },
+  filterScroll: { paddingHorizontal: spacing.lg, gap: spacing.sm },
+  filterButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.surface.primary, borderRadius: radius.md, ...shadows.sm },
+  filterButtonActive: { backgroundColor: colors.accent.primary },
+  filterText: { ...typography.label, color: colors.text.secondary },
+  filterTextActive: { color: colors.text.primary },
 
   listContainer: { flex: 1 },
-  listContent: { paddingHorizontal: 24, paddingBottom: 120 },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: 20 },
 
-  loadingContainer: { paddingTop: 80, alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, color: 'rgba(255,255,255,0.5)' },
+  loadingContainer: { paddingTop: spacing.xxxl, alignItems: 'center' },
+  loadingText: { marginTop: spacing.md, ...typography.body, color: colors.text.tertiary },
 
-  emptyCard: { backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 24, padding: 40, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
-  emptyIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255, 255, 255, 0.05)', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF', marginBottom: 8 },
-  emptyText: { fontSize: 15, color: 'rgba(255,255,255,0.5)', textAlign: 'center' },
+  emptyCard: { backgroundColor: colors.surface.primary, borderRadius: radius.card, padding: spacing.xxl, alignItems: 'center', ...shadows.md },
+  emptyIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: colors.surface.secondary, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.lg },
+  emptyTitle: { ...typography.h3, color: colors.text.primary, marginBottom: spacing.sm },
+  emptyText: { ...typography.body, color: colors.text.secondary, textAlign: 'center' },
 
-  demandeCard: { backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 20, marginBottom: 12, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
-  demandeCardPressed: { opacity: 0.8 },
+  demandeCard: { backgroundColor: colors.surface.primary, borderRadius: radius.card, marginBottom: spacing.md, flexDirection: 'row', overflow: 'hidden', ...shadows.md },
   demandePressable: { opacity: 0.8 },
   statusIndicator: { width: 4 },
-  demandeContent: { flex: 1, padding: 16 },
+  demandeContent: { flex: 1, padding: spacing.lg },
   demandeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  demandeInfo: { flex: 1, marginRight: 12 },
-  demandeMedicament: { fontSize: 17, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
-  demandeClient: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  demandeClientText: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  statusText: { fontSize: 11, fontWeight: '600' },
-  demandeDescription: { fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 10, lineHeight: 20 },
-  demandeFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.05)' },
-  demandeTime: { fontSize: 13, color: 'rgba(255,255,255,0.3)' },
+  demandeInfo: { flex: 1, marginRight: spacing.md },
+  demandeMedicament: { ...typography.h4, color: colors.text.primary, marginBottom: spacing.xs },
+  demandeClient: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  demandeClientText: { ...typography.caption, color: colors.text.tertiary },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm },
+  statusText: { ...typography.caption, fontWeight: '600' },
+  demandeDescription: { ...typography.body, color: colors.text.secondary, marginTop: spacing.sm, lineHeight: 20 },
+  demandeFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border.light },
+  demandeTime: { ...typography.caption, color: colors.text.tertiary },
   repondreButton: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  repondreText: { fontSize: 14, fontWeight: '600', color: '#10B981' },
+  repondreText: { ...typography.label, color: colors.accent.primary },
 
   // Modal
-  modalContainer: { flex: 1, backgroundColor: '#0A1628' },
+  modalContainer: { flex: 1, backgroundColor: colors.surface.primary },
   modalSafeArea: { flex: 1 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.08)' },
-  modalTitle: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
-  modalSubtitle: { fontSize: 15, color: '#00D9FF', fontWeight: '500', marginTop: 2 },
-  closeButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.05)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { flex: 1, paddingHorizontal: 24, paddingTop: 20 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border.light },
+  modalTitle: { ...typography.h4, color: colors.text.primary },
+  modalSubtitle: { ...typography.body, color: colors.accent.primary, marginTop: spacing.xs },
+  closeButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface.secondary, justifyContent: 'center', alignItems: 'center' },
+  modalContent: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
 
-  infoCard: { flexDirection: 'row', backgroundColor: 'rgba(0, 217, 255, 0.08)', borderRadius: 14, padding: 16, gap: 12, marginBottom: 20, alignItems: 'flex-start' },
-  infoText: { flex: 1, fontSize: 13, color: '#00D9FF', lineHeight: 20 },
+  infoCard: { flexDirection: 'row', backgroundColor: colors.accent.ultraLight, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md, marginBottom: spacing.lg, alignItems: 'flex-start' },
+  infoText: { flex: 1, ...typography.bodySmall, color: colors.accent.secondary, lineHeight: 20 },
 
-  propositionCard: { backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 20, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
-  propositionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  propositionNumber: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  propositionNumberText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
-  propositionTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-  deleteButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(239, 68, 68, 0.15)', justifyContent: 'center', alignItems: 'center' },
+  propositionCard: { backgroundColor: colors.surface.secondary, borderRadius: radius.card, padding: spacing.lg, marginBottom: spacing.md },
+  propositionHeaderModal: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
+  propositionNumber: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.accent.primary, justifyContent: 'center', alignItems: 'center', marginRight: spacing.sm },
+  propositionNumberText: { ...typography.label, color: colors.text.primary },
+  propositionTitle: { flex: 1, ...typography.h4, color: colors.text.primary },
+  deleteButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.error.light, justifyContent: 'center', alignItems: 'center' },
 
-  formGroup: { marginBottom: 14 },
+  formGroup: { marginBottom: spacing.md },
   formRow: { flexDirection: 'row' },
-  label: { fontSize: 14, fontWeight: '500', color: '#FFFFFF', marginBottom: 8 },
-  labelOptional: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.5)', marginBottom: 8 },
-  required: { color: '#EF4444' },
-  input: { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)', height: 50, paddingHorizontal: 14, fontSize: 16, color: '#FFFFFF' },
+  label: { ...typography.label, color: colors.text.primary, marginBottom: spacing.sm },
+  labelOptional: { ...typography.label, color: colors.text.secondary, marginBottom: spacing.sm },
+  required: { color: colors.error.primary },
+  input: { backgroundColor: colors.surface.primary, borderRadius: radius.button, borderWidth: 2, borderColor: colors.border.light, height: 52, paddingHorizontal: spacing.md, ...typography.body, color: colors.text.primary },
 
-  addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, borderWidth: 2, borderColor: '#10B981', borderStyle: 'dashed' },
-  addButtonPressed: { backgroundColor: 'rgba(16, 185, 129, 0.1)' },
-  addButtonText: { fontSize: 15, fontWeight: '600', color: '#10B981' },
+  addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, borderRadius: radius.button, borderWidth: 2, borderColor: colors.accent.primary, borderStyle: 'dashed' },
+  addButtonPressed: { backgroundColor: colors.accent.ultraLight },
+  addButtonText: { ...typography.label, color: colors.accent.primary },
 
-  modalFooter: { paddingHorizontal: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)' },
-  submitButton: { borderRadius: 16, overflow: 'hidden' },
-  submitButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 18 },
+  modalFooter: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border.light },
+  submitButton: { borderRadius: radius.button, overflow: 'hidden' },
+  submitButtonInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.lg, backgroundColor: colors.accent.primary, borderRadius: radius.button, ...shadows.accent },
   submitButtonPressed: { opacity: 0.9 },
-  submitButtonDisabled: { opacity: 0.7 },
-  submitButtonText: { fontSize: 17, fontWeight: '700', color: '#FFFFFF' },
-  submitButtonTextDisabled: { fontSize: 17, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
+  submitButtonDisabled: { opacity: 0.5 },
+  submitButtonText: { ...typography.label, fontSize: 17, fontWeight: '700', color: colors.text.primary },
 
   // Propositions affichées dans les demandes traitées
-  propositionsContainer: { marginTop: 16 },
-  propositionsDivider: { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.05)', marginBottom: 12 },
-  propositionsHeader: { fontSize: 14, fontWeight: '600', color: '#10B981', marginBottom: 12 },
-  propositionItem: { backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'flex-start' },
-  propositionNumberBadge: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(16, 185, 129, 0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 12, marginTop: 2 },
-  propositionNumberBadgeText: { fontSize: 12, fontWeight: '700', color: '#10B981' },
+  propositionsContainer: { marginTop: spacing.md },
+  propositionsDivider: { height: 1, backgroundColor: colors.border.light, marginBottom: spacing.md },
+  propositionsHeader: { ...typography.label, color: colors.accent.primary, marginBottom: spacing.md },
+  propositionItem: { backgroundColor: colors.surface.secondary, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'flex-start' },
+  propositionNumberBadge: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent.light, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md, marginTop: 2 },
+  propositionNumberBadgeText: { ...typography.caption, fontWeight: '700', color: colors.accent.primary },
   propositionDetails: { flex: 1 },
-  propositionPharmacyName: { fontSize: 15, fontWeight: '600', color: '#FFFFFF', marginBottom: 6 },
-  propositionRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 },
-  propositionLocation: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  propositionLocationText: { fontSize: 13, color: 'rgba(255,255,255,0.5)' },
-  propositionAddress: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
-  propositionPhone: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
-  propositionPhoneText: { fontSize: 13, color: 'rgba(255,255,255,0.5)' },
-  propositionPriceBadge: { backgroundColor: 'rgba(16, 185, 129, 0.15)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  propositionPriceText: { fontSize: 14, fontWeight: '700', color: '#10B981' },
+  propositionPharmacyName: { ...typography.label, color: colors.text.primary, marginBottom: spacing.xs },
+  propositionRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: spacing.xs },
+  propositionLocation: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  propositionLocationText: { ...typography.caption, color: colors.text.secondary },
+  propositionAddress: { ...typography.caption, color: colors.text.tertiary },
+  propositionPhone: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  propositionPhoneText: { ...typography.caption, color: colors.text.secondary },
+  propositionPriceBadge: { backgroundColor: colors.success.light, alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm },
+  propositionPriceText: { ...typography.label, color: colors.success.primary },
 });
 

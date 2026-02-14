@@ -1,3 +1,8 @@
+/**
+ * Home Screen - Client
+ * Modern Apothecary Design System
+ * Bento Grid Layout with Search Bar prioritized
+ */
 import { useEffect, useState, useRef } from 'react';
 import {
   RefreshControl,
@@ -6,17 +11,26 @@ import {
   Platform,
   Pressable,
   Animated,
-  Dimensions
+  Dimensions,
+  View as RNView,
+  Text,
 } from 'react-native';
 import { ScrollView, Spinner, View } from 'tamagui';
-import { MapPin, Phone, Clock, ArrowRight, Pill, Zap } from 'lucide-react-native';
+import { MapPin, Phone, Clock, ArrowRight, Pill, Search, Grid3X3, Sparkles } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { supabase, PharmacieGarde } from '../../lib/supabase';
 import { useAuth } from '../_layout';
-import { Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  colors,
+  typography,
+  spacing,
+  radius,
+  shadows,
+  BackgroundShapes,
+  BentoCard,
+} from '../../components/design-system';
 
 const { width } = Dimensions.get('window');
 
@@ -29,18 +43,19 @@ export default function HomeScreen() {
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 700,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
-        duration: 600,
+        damping: 20,
+        stiffness: 90,
         useNativeDriver: true,
       }),
     ]).start();
@@ -88,18 +103,11 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <RNView style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Background */}
-      <LinearGradient
-        colors={['#0A1628', '#132F4C', '#0A1628']}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Decorative elements */}
-      <View style={styles.decorCircle1} />
-      <View style={styles.decorCircle2} />
+      {/* Organic Background Shapes */}
+      <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -108,10 +116,11 @@ export default function HomeScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#00D9FF"
+              tintColor={colors.accent.primary}
             />
           }
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
         >
           {/* Header */}
           <Animated.View
@@ -119,8 +128,8 @@ export default function HomeScreen() {
               styles.header,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
+                transform: [{ translateY: slideAnim }],
+              },
             ]}
           >
             <Text style={styles.greeting}>{getGreeting()},</Text>
@@ -129,49 +138,71 @@ export default function HomeScreen() {
             </Text>
           </Animated.View>
 
-          {/* Search Card */}
+          {/* Hero Search Card - Full Width Bento */}
           <Animated.View
             style={{
               opacity: fadeAnim,
-              transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
+              transform: [{ translateY: Animated.multiply(slideAnim, 1.1) }],
             }}
           >
-            <Pressable
+            <BentoCard
+              size="2x1"
+              variant="filled"
               onPress={() => router.push('/(client)/search')}
-              style={({ pressed }) => [
-                styles.searchCard,
-                pressed && styles.searchCardPressed
-              ]}
+              style={styles.searchCard}
             >
-              <LinearGradient
-                colors={['#00D9FF', '#0EA5E9', '#0284C7']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.searchCardGradient}
-              >
-                <View style={styles.searchCardContent}>
-                  <View style={styles.searchIconContainer}>
-                    <Pill size={28} color="#0A1628" />
-                  </View>
-                  <View style={styles.searchTextContainer}>
-                    <Text style={styles.searchTitle}>Chercher un médicament</Text>
-                    <Text style={styles.searchSubtitle}>
-                      Trouvez rapidement dans les pharmacies
-                    </Text>
-                  </View>
-                  <View style={styles.searchArrow}>
-                    <ArrowRight size={24} color="#0A1628" />
-                  </View>
-                </View>
+              <RNView style={styles.searchCardContent}>
+                <RNView style={styles.searchIconWrapper}>
+                  <Search size={28} color={colors.text.primary} strokeWidth={2.5} />
+                </RNView>
+                <RNView style={styles.searchTextWrapper}>
+                  <Text style={styles.searchTitle}>Chercher un médicament</Text>
+                  <Text style={styles.searchSubtitle}>
+                    Trouvez rapidement dans les pharmacies
+                  </Text>
+                </RNView>
+                <RNView style={styles.searchArrowWrapper}>
+                  <ArrowRight size={24} color={colors.text.primary} />
+                </RNView>
+              </RNView>
+            </BentoCard>
+          </Animated.View>
 
-                {/* Decorative dots */}
-                <View style={styles.searchDots}>
-                  {[...Array(6)].map((_, i) => (
-                    <View key={i} style={styles.searchDot} />
-                  ))}
-                </View>
-              </LinearGradient>
-            </Pressable>
+          {/* Bento Grid - Quick Actions */}
+          <Animated.View
+            style={[
+              styles.bentoGrid,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }],
+              },
+            ]}
+          >
+            <BentoCard
+              size="1x1"
+              variant="elevated"
+              onPress={() => router.push('/(client)/search')}
+              style={styles.bentoItem}
+            >
+              <RNView style={[styles.bentoIcon, { backgroundColor: colors.accent.light }]}>
+                <Pill size={24} color={colors.accent.primary} />
+              </RNView>
+              <Text style={styles.bentoTitle}>Médicaments</Text>
+              <Text style={styles.bentoDescription}>Recherche rapide</Text>
+            </BentoCard>
+
+            <BentoCard
+              size="1x1"
+              variant="elevated"
+              onPress={() => router.push('/(client)/history')}
+              style={styles.bentoItem}
+            >
+              <RNView style={[styles.bentoIcon, { backgroundColor: colors.info.light }]}>
+                <Grid3X3 size={24} color={colors.info.primary} />
+              </RNView>
+              <Text style={styles.bentoTitle}>Catégories</Text>
+              <Text style={styles.bentoDescription}>Explorer par type</Text>
+            </BentoCard>
           </Animated.View>
 
           {/* Section Pharmacies de garde */}
@@ -180,129 +211,170 @@ export default function HomeScreen() {
               styles.section,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: Animated.multiply(slideAnim, 1.5) }]
-              }
+                transform: [{ translateY: Animated.multiply(slideAnim, 1.4) }],
+              },
             ]}
           >
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleContainer}>
-                <LinearGradient
-                  colors={['#10B981', '#059669']}
-                  style={styles.sectionIcon}
-                >
-                  <Clock size={14} color="#FFFFFF" />
-                </LinearGradient>
-                <View>
+            <RNView style={styles.sectionHeader}>
+              <RNView style={styles.sectionTitleContainer}>
+                <RNView style={styles.sectionIcon}>
+                  <Clock size={16} color={colors.success.primary} />
+                </RNView>
+                <RNView>
                   <Text style={styles.sectionTitle}>Pharmacies de garde</Text>
                   <Text style={styles.sectionDate}>
                     {new Date().toLocaleDateString('fr-FR', {
                       weekday: 'long',
                       day: 'numeric',
-                      month: 'long'
+                      month: 'long',
                     })}
                   </Text>
-                </View>
-              </View>
-              <View style={styles.liveIndicator}>
-                <View style={styles.liveDot} />
+                </RNView>
+              </RNView>
+              <RNView style={styles.liveIndicator}>
+                <RNView style={styles.liveDot} />
                 <Text style={styles.liveText}>LIVE</Text>
-              </View>
-            </View>
+              </RNView>
+            </RNView>
 
             {loading ? (
-              <View style={styles.loadingContainer}>
-                <Spinner size="large" color="#00D9FF" />
+              <RNView style={styles.loadingContainer}>
+                <Spinner size="large" color={colors.accent.primary} />
                 <Text style={styles.loadingText}>Chargement...</Text>
-              </View>
+              </RNView>
             ) : pharmacies.length === 0 ? (
-              <View style={styles.emptyCard}>
+              <RNView style={styles.emptyCard}>
                 <Text style={styles.emptyEmoji}>🏥</Text>
                 <Text style={styles.emptyTitle}>Aucune pharmacie</Text>
                 <Text style={styles.emptyText}>
                   Aucune pharmacie de garde trouvée pour aujourd'hui
                 </Text>
-              </View>
+              </RNView>
             ) : (
-              <View style={styles.pharmaciesList}>
+              <RNView style={styles.pharmaciesList}>
                 {pharmacies.map((pharmacie, index) => {
                   const isLast = index === pharmacies.length - 1;
 
                   return (
-                    <Animated.View
+                    <PharmacyCard
                       key={pharmacie.id}
-                      style={[
-                        styles.pharmacieCard,
-                        isLast && styles.pharmacieCardLast,
-                        {
-                          opacity: fadeAnim,
-                          transform: [{
-                            translateY: Animated.multiply(
-                              slideAnim,
-                              1.5 + index * 0.2
-                            )
-                          }]
-                        }
-                      ]}
-                    >
-                      <View style={styles.pharmacieContent}>
-                        <View style={styles.pharmacieHeader}>
-                          <View style={styles.pharmacieIndex}>
-                            <Text style={styles.pharmacieIndexText}>
-                              {String(index + 1).padStart(2, '0')}
-                            </Text>
-                          </View>
-                          <View style={styles.pharmacieInfo}>
-                            <Text style={styles.pharmacieName}>{pharmacie.nom}</Text>
-                            <View style={styles.pharmacieAddress}>
-                              <MapPin size={12} color="rgba(255,255,255,0.4)" />
-                              <Text style={styles.pharmacieAddressText} numberOfLines={1}>
-                                {pharmacie.adresse}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-
-                        <View style={styles.pharmacieFooter}>
-                          <View style={styles.pharmacieQuartier}>
-                            <Text style={styles.pharmacieQuartierText}>
-                              {pharmacie.quartier}
-                            </Text>
-                          </View>
-
-                          <Pressable
-                            onPress={() => callPharmacy(pharmacie.telephone)}
-                            style={({ pressed }) => [
-                              styles.callButton,
-                              pressed && styles.callButtonPressed
-                            ]}
-                          >
-                            <LinearGradient
-                              colors={['#10B981', '#059669']}
-                              style={styles.callButtonGradient}
-                            >
-                              <Phone size={18} color="#FFFFFF" />
-                            </LinearGradient>
-                          </Pressable>
-                        </View>
-                      </View>
-                    </Animated.View>
+                      pharmacie={pharmacie}
+                      index={index}
+                      isLast={isLast}
+                      onCall={callPharmacy}
+                      fadeAnim={fadeAnim}
+                      slideAnim={slideAnim}
+                    />
                   );
                 })}
-              </View>
+              </RNView>
             )}
           </Animated.View>
 
-          <View style={{ height: 100 }} />
+          <RNView style={{ height: 120 }} />
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </RNView>
   );
 }
+
+// Pharmacy Card Component
+interface PharmacyCardProps {
+  pharmacie: PharmacieGarde;
+  index: number;
+  isLast: boolean;
+  onCall: (telephone: string) => void;
+  fadeAnim: Animated.Value;
+  slideAnim: Animated.Value;
+}
+
+const PharmacyCard: React.FC<PharmacyCardProps> = ({
+  pharmacie,
+  index,
+  isLast,
+  onCall,
+  fadeAnim,
+  slideAnim,
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      damping: 15,
+      stiffness: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      damping: 15,
+      stiffness: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <Animated.View
+      style={[
+        styles.pharmacieCard,
+        isLast && styles.pharmacieCardLast,
+        {
+          opacity: fadeAnim,
+          transform: [
+            {
+              translateY: Animated.multiply(slideAnim, 1.5 + index * 0.15),
+            },
+            { scale: scaleAnim },
+          ],
+        },
+      ]}
+    >
+      <RNView style={styles.pharmacieContent}>
+        <RNView style={styles.pharmacieHeader}>
+          <RNView style={styles.pharmacieIndex}>
+            <Text style={styles.pharmacieIndexText}>
+              {String(index + 1).padStart(2, '0')}
+            </Text>
+          </RNView>
+          <RNView style={styles.pharmacieInfo}>
+            <Text style={styles.pharmacieName}>{pharmacie.nom}</Text>
+            <RNView style={styles.pharmacieAddress}>
+              <MapPin size={12} color={colors.text.tertiary} />
+              <Text style={styles.pharmacieAddressText} numberOfLines={1}>
+                {pharmacie.adresse}
+              </Text>
+            </RNView>
+          </RNView>
+        </RNView>
+
+        <RNView style={styles.pharmacieFooter}>
+          <RNView style={styles.pharmacieQuartier}>
+            <Text style={styles.pharmacieQuartierText}>{pharmacie.quartier}</Text>
+          </RNView>
+
+          <Pressable
+            onPress={() => onCall(pharmacie.telephone)}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            style={styles.callButton}
+          >
+            <RNView style={styles.callButtonInner}>
+              <Phone size={18} color={colors.text.primary} />
+            </RNView>
+          </Pressable>
+        </RNView>
+      </RNView>
+    </Animated.View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A1628',
+    backgroundColor: colors.background.primary,
   },
   safeArea: {
     flex: 1,
@@ -310,152 +382,126 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-
-  // Decorative
-  decorCircle1: {
-    position: 'absolute',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(0, 217, 255, 0.03)',
-    top: -50,
-    right: -80,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(16, 185, 129, 0.03)',
-    bottom: 200,
-    left: -60,
+  scrollContent: {
+    paddingBottom: 20,
   },
 
   // Header
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   greeting: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 4,
-    fontWeight: '500',
+    ...typography.body,
+    color: colors.text.tertiary,
+    marginBottom: spacing.xs,
   },
   userName: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    ...typography.h1,
+    color: colors.text.inverse,
   },
 
   // Search Card
   searchCard: {
-    marginHorizontal: 24,
-    marginBottom: 32,
-    borderRadius: 24,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#00D9FF',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-      },
-      android: {
-        elevation: 12,
-      },
-    }),
-  },
-  searchCardPressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.95,
-  },
-  searchCardGradient: {
-    padding: 24,
-    position: 'relative',
-    overflow: 'hidden',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.accent.primary,
+    ...shadows.accent,
   },
   searchCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  searchIconContainer: {
+  searchIconWrapper: {
     width: 56,
     height: 56,
-    borderRadius: 18,
-    backgroundColor: 'rgba(10, 22, 40, 0.2)',
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(26, 26, 26, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing.md,
   },
-  searchTextContainer: {
+  searchTextWrapper: {
     flex: 1,
   },
   searchTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0A1628',
-    marginBottom: 4,
+    ...typography.h4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   searchSubtitle: {
-    fontSize: 13,
-    color: 'rgba(10, 22, 40, 0.6)',
-    fontWeight: '500',
+    ...typography.bodySmall,
+    color: 'rgba(26, 26, 26, 0.6)',
   },
-  searchArrow: {
+  searchArrowWrapper: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(10, 22, 40, 0.15)',
+    backgroundColor: 'rgba(26, 26, 26, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  searchDots: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
+
+  // Bento Grid
+  bentoGrid: {
     flexDirection: 'row',
-    gap: 4,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+    marginBottom: spacing.xl,
   },
-  searchDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(10, 22, 40, 0.2)',
+  bentoItem: {
+    flex: 1,
+    minHeight: 140,
+  },
+  bentoIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  bentoTitle: {
+    ...typography.h4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  bentoDescription: {
+    ...typography.caption,
+    color: colors.text.tertiary,
   },
 
   // Section
   section: {
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   sectionTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
   },
   sectionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.success.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    ...typography.h4,
+    color: colors.text.inverse,
   },
   sectionDate: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.4)',
+    ...typography.caption,
+    color: colors.text.tertiary,
     marginTop: 2,
     textTransform: 'capitalize',
   },
@@ -463,113 +509,106 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
+    backgroundColor: colors.error.light,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error.primary,
   },
   liveText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#EF4444',
-    letterSpacing: 1,
+    ...typography.overline,
+    color: colors.error.primary,
   },
 
   // Loading
   loadingContainer: {
-    paddingVertical: 60,
+    paddingVertical: spacing.xxxl,
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
+    marginTop: spacing.md,
+    ...typography.body,
+    color: colors.text.tertiary,
   },
 
   // Empty state
   emptyCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
-    padding: 40,
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
+    padding: spacing.xxl,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    ...shadows.md,
   },
   emptyEmoji: {
     fontSize: 48,
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    ...typography.h4,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
   },
   emptyText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
+    ...typography.body,
+    color: colors.text.secondary,
     textAlign: 'center',
   },
 
   // Pharmacies list
   pharmaciesList: {
-    gap: 12,
+    gap: spacing.md,
   },
   pharmacieCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
     overflow: 'hidden',
+    ...shadows.md,
   },
   pharmacieCardLast: {
     marginBottom: 0,
   },
   pharmacieContent: {
-    padding: 18,
+    padding: spacing.lg,
   },
   pharmacieHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   pharmacieIndex: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 217, 255, 0.1)',
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent.light,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: spacing.md,
   },
   pharmacieIndexText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#00D9FF',
+    ...typography.label,
+    color: colors.accent.primary,
   },
   pharmacieInfo: {
     flex: 1,
   },
   pharmacieName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 6,
+    ...typography.h4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   pharmacieAddress: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
   },
   pharmacieAddressText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.4)',
+    ...typography.bodySmall,
+    color: colors.text.tertiary,
     flex: 1,
   },
   pharmacieFooter: {
@@ -578,28 +617,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pharmacieQuartier: {
-    backgroundColor: 'rgba(0, 217, 255, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    backgroundColor: colors.accent.ultraLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
   },
   pharmacieQuartierText: {
-    fontSize: 12,
+    ...typography.caption,
+    color: colors.accent.secondary,
     fontWeight: '600',
-    color: '#00D9FF',
   },
   callButton: {
-    borderRadius: 14,
+    borderRadius: radius.md,
     overflow: 'hidden',
   },
-  callButtonPressed: {
-    transform: [{ scale: 0.95 }],
-    opacity: 0.9,
-  },
-  callButtonGradient: {
+  callButtonInner: {
     width: 48,
     height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    ...shadows.accent,
   },
 });
