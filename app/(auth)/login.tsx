@@ -167,7 +167,7 @@ export default function LoginScreen() {
   if (isLoading) {
     return (
       <RNView style={styles.loadingContainer}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <BackgroundShapes variant="home" />
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <RNView style={styles.loadingLogo}>
@@ -181,7 +181,7 @@ export default function LoginScreen() {
 
   return (
     <RNView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   },
   appName: {
     ...typography.display,
-    color: colors.text.inverse,
+    color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   taglineContainer: {
@@ -392,7 +392,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.lg,
     marginBottom: spacing.xl,
-    ...shadows.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
   },
   formHeader: {
     marginBottom: spacing.lg,

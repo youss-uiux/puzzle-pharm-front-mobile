@@ -112,23 +112,23 @@ export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
           <>
             <OrganicShape
               variant="circle"
-              size={300}
+              size={350}
               color={colors.accent.primary}
-              opacity={0.06}
+              opacity={0.04}
               style={styles.homeCircle1}
             />
             <OrganicShape
               variant="arch"
-              size={250}
+              size={280}
               color={colors.success.primary}
-              opacity={0.04}
+              opacity={0.03}
               style={styles.homeArch}
             />
             <OrganicShape
               variant="ring"
-              size={180}
+              size={200}
               color={colors.accent.primary}
-              opacity={0.05}
+              opacity={0.03}
               style={styles.homeRing}
             />
           </>
@@ -139,16 +139,16 @@ export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
           <>
             <OrganicShape
               variant="blob"
-              size={280}
+              size={320}
               color={colors.accent.primary}
-              opacity={0.05}
+              opacity={0.03}
               style={styles.searchBlob1}
             />
             <OrganicShape
               variant="circle"
-              size={150}
+              size={180}
               color={colors.info.primary}
-              opacity={0.04}
+              opacity={0.025}
               style={styles.searchCircle}
             />
           </>
@@ -159,16 +159,16 @@ export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
           <>
             <OrganicShape
               variant="arch"
-              size={350}
+              size={400}
               color={colors.accent.primary}
-              opacity={0.08}
+              opacity={0.05}
               style={styles.profileArch}
             />
             <OrganicShape
               variant="ring"
-              size={200}
+              size={220}
               color={colors.success.primary}
-              opacity={0.04}
+              opacity={0.025}
               style={styles.profileRing}
             />
           </>
@@ -179,16 +179,16 @@ export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
           <>
             <OrganicShape
               variant="arch"
-              size={400}
+              size={450}
               color={colors.accent.primary}
-              opacity={0.12}
+              opacity={0.08}
               style={styles.detailArch}
             />
             <OrganicShape
               variant="circle"
-              size={120}
+              size={140}
               color={colors.accent.secondary}
-              opacity={0.06}
+              opacity={0.04}
               style={styles.detailCircle}
             />
           </>

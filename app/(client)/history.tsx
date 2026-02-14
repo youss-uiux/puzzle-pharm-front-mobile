@@ -158,7 +158,7 @@ export default function HistoryScreen() {
 
   return (
     <RNView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.h1,
-    color: colors.text.inverse,
+    color: colors.text.primary,
     marginBottom: spacing.xs,
   },
   headerSubtitle: {
@@ -368,7 +368,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.xxl,
     alignItems: 'center',
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
   },
   emptyIcon: {
     width: 100,
@@ -397,7 +399,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.primary,
     borderRadius: radius.card,
     overflow: 'hidden',
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
   },
   demandeHeader: {
     padding: spacing.lg,

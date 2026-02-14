@@ -82,15 +82,15 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.glass.light,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
   },
   androidBackground: {
-    backgroundColor: colors.glass.light,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
   },
 });
 

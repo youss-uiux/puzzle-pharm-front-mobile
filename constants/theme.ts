@@ -3,20 +3,20 @@
  * A premium pharmaceutical experience with Bento Grid + Soft UI aesthetics
  */
 
-// Core Color Palette
+// Core Color Palette - White Minimalist Studio
 export const colors = {
-  // Primary - Deep Charcoal (Backgrounds)
+  // Primary - Pure White Studio (Backgrounds)
   background: {
-    primary: '#1A1A1A',
-    secondary: '#242424',
-    tertiary: '#2E2E2E',
+    primary: '#FFFFFF',
+    secondary: '#FAFAFA',
+    tertiary: '#F5F5F5',
   },
 
-  // Secondary - Crisp White (Cards & Surfaces)
+  // Secondary - Soft Surfaces
   surface: {
     primary: '#FFFFFF',
-    secondary: '#F8F8F8',
-    tertiary: '#F0F0F0',
+    secondary: '#F8F9FA',
+    tertiary: '#F1F3F5',
   },
 
   // Accent - Golden Yellow (Primary Actions)
@@ -24,53 +24,53 @@ export const colors = {
     primary: '#F2C855',
     secondary: '#E5B84A',
     tertiary: '#D4A83F',
-    light: 'rgba(242, 200, 85, 0.15)',
-    ultraLight: 'rgba(242, 200, 85, 0.08)',
+    light: 'rgba(242, 200, 85, 0.12)',
+    ultraLight: 'rgba(242, 200, 85, 0.06)',
   },
 
   // Semantic Colors
   success: {
-    primary: '#4ADE80',
-    secondary: '#22C55E',
-    light: 'rgba(74, 222, 128, 0.15)',
+    primary: '#22C55E',
+    secondary: '#16A34A',
+    light: 'rgba(34, 197, 94, 0.1)',
   },
   warning: {
-    primary: '#FBBF24',
-    secondary: '#F59E0B',
-    light: 'rgba(251, 191, 36, 0.15)',
+    primary: '#F59E0B',
+    secondary: '#D97706',
+    light: 'rgba(245, 158, 11, 0.1)',
   },
   error: {
-    primary: '#F87171',
-    secondary: '#EF4444',
-    light: 'rgba(248, 113, 113, 0.15)',
+    primary: '#EF4444',
+    secondary: '#DC2626',
+    light: 'rgba(239, 68, 68, 0.1)',
   },
   info: {
-    primary: '#60A5FA',
-    secondary: '#3B82F6',
-    light: 'rgba(96, 165, 250, 0.15)',
+    primary: '#3B82F6',
+    secondary: '#2563EB',
+    light: 'rgba(59, 130, 246, 0.1)',
   },
 
-  // Text Colors
+  // Text Colors - High contrast on white
   text: {
     primary: '#1A1A1A',
-    secondary: '#6B7280',
-    tertiary: '#9CA3AF',
+    secondary: '#52525B',
+    tertiary: '#A1A1AA',
     inverse: '#FFFFFF',
-    muted: 'rgba(26, 26, 26, 0.5)',
+    muted: 'rgba(26, 26, 26, 0.4)',
   },
 
   // Glass/Overlay
   glass: {
-    light: 'rgba(255, 255, 255, 0.85)',
+    light: 'rgba(255, 255, 255, 0.95)',
     dark: 'rgba(26, 26, 26, 0.85)',
-    blur: 'rgba(255, 255, 255, 0.6)',
+    blur: 'rgba(255, 255, 255, 0.8)',
   },
 
-  // Border Colors
+  // Border Colors - Subtle on white
   border: {
-    light: 'rgba(26, 26, 26, 0.08)',
-    medium: 'rgba(26, 26, 26, 0.12)',
-    dark: 'rgba(26, 26, 26, 0.2)',
+    light: 'rgba(0, 0, 0, 0.06)',
+    medium: 'rgba(0, 0, 0, 0.1)',
+    dark: 'rgba(0, 0, 0, 0.15)',
   },
 } as const;
 
@@ -176,42 +176,42 @@ export const radius = {
   avatar: 24,
 } as const;
 
-// Shadows (Soft UI)
+// Shadows (Soft UI - Minimalist)
 export const shadows = {
   sm: {
     shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
-  md: {
+  lg: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 4,
   },
-  lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
-  },
   xl: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 32,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 6,
   },
   accent: {
     shadowColor: '#F2C855',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
   },
 } as const;
 

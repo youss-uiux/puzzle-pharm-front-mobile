@@ -236,7 +236,7 @@ export default function DemandesScreen() {
 
   return (
     <RNView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
 
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md },
-  headerTitle: { ...typography.h1, color: colors.text.inverse },
+  headerTitle: { ...typography.h1, color: colors.text.primary },
   headerSubtitle: { ...typography.body, color: colors.text.tertiary, marginTop: spacing.xs },
 
   filterContainer: { paddingBottom: spacing.md },
@@ -496,12 +496,12 @@ const styles = StyleSheet.create({
   loadingContainer: { paddingTop: spacing.xxxl, alignItems: 'center' },
   loadingText: { marginTop: spacing.md, ...typography.body, color: colors.text.tertiary },
 
-  emptyCard: { backgroundColor: colors.surface.primary, borderRadius: radius.card, padding: spacing.xxl, alignItems: 'center', ...shadows.md },
+  emptyCard: { backgroundColor: colors.surface.primary, borderRadius: radius.card, padding: spacing.xxl, alignItems: 'center', borderWidth: 1, borderColor: colors.border.light, ...shadows.sm },
   emptyIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: colors.surface.secondary, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.lg },
   emptyTitle: { ...typography.h3, color: colors.text.primary, marginBottom: spacing.sm },
   emptyText: { ...typography.body, color: colors.text.secondary, textAlign: 'center' },
 
-  demandeCard: { backgroundColor: colors.surface.primary, borderRadius: radius.card, marginBottom: spacing.md, flexDirection: 'row', overflow: 'hidden', ...shadows.md },
+  demandeCard: { backgroundColor: colors.surface.primary, borderRadius: radius.card, marginBottom: spacing.md, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: colors.border.light, ...shadows.sm },
   demandePressable: { opacity: 0.8 },
   statusIndicator: { width: 4 },
   demandeContent: { flex: 1, padding: spacing.lg },

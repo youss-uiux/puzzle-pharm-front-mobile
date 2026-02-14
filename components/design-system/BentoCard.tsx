@@ -111,14 +111,16 @@ const getVariantStyles = (variant: string, accentColor?: string): ViewStyle => {
     case 'outlined':
       return {
         backgroundColor: colors.surface.primary,
-        borderWidth: 1.5,
+        borderWidth: 1,
         borderColor: accentColor || colors.border.medium,
       };
     case 'elevated':
     default:
       return {
         backgroundColor: colors.surface.primary,
-        ...shadows.md,
+        borderWidth: 1,
+        borderColor: colors.border.light,
+        ...shadows.sm,
       };
   }
 };

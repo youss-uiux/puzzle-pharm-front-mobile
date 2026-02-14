@@ -73,7 +73,7 @@ export default function ProfileScreen() {
 
   return (
     <RNView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <BackgroundShapes variant="profile" />
 
       <SafeAreaView style={styles.safeArea}>
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.h1,
-    color: colors.text.inverse,
+    color: colors.text.primary,
   },
 
   // Profile Card
@@ -230,7 +230,9 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
   },
   avatar: {
     width: 72,
@@ -289,7 +291,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.primary,
     borderRadius: radius.card,
     overflow: 'hidden',
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
   },
   menuItem: {
     flexDirection: 'row',

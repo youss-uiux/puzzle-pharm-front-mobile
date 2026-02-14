@@ -113,7 +113,7 @@ export default function SearchScreen() {
   if (success) {
     return (
       <RNView style={styles.container}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <BackgroundShapes variant="search" />
 
         <SafeAreaView style={styles.successContainer}>
@@ -148,7 +148,7 @@ export default function SearchScreen() {
 
   return (
     <RNView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <BackgroundShapes variant="search" />
 
       <SafeAreaView style={styles.safeArea}>
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.h1,
-    color: colors.text.inverse,
+    color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   headerSubtitle: {
@@ -343,7 +343,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.lg,
     marginBottom: spacing.lg,
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
   },
   formGroup: {
     marginBottom: spacing.lg,
@@ -462,7 +464,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     ...typography.h2,
-    color: colors.text.inverse,
+    color: colors.text.primary,
     marginBottom: spacing.md,
   },
   successText: {

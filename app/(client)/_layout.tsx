@@ -124,18 +124,18 @@ const styles = StyleSheet.create({
   },
   glassOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
   },
   androidBackground: {
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+    borderColor: 'rgba(0, 0, 0, 0.06)',
   },
   activeIconContainer: {
-    backgroundColor: colors.accent.ultraLight,
+    backgroundColor: colors.accent.light,
     padding: 6,
     borderRadius: 12,
     marginBottom: -4,

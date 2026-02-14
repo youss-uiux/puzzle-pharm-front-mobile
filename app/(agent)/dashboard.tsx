@@ -175,7 +175,7 @@ export default function DashboardScreen() {
 
   return (
     <RNView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     ...typography.h1,
-    color: colors.text.inverse,
+    color: colors.text.primary,
   },
   alertBadge: {
     flexDirection: 'row',
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography.h3,
-    color: colors.text.inverse,
+    color: colors.text.primary,
   },
   liveIndicator: {
     flexDirection: 'row',
@@ -461,7 +461,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.xxl,
     alignItems: 'center',
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
   },
   emptyEmoji: {
     fontSize: 48,
@@ -477,7 +479,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.primary,
     borderRadius: radius.card,
     overflow: 'hidden',
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadows.sm,
   },
   demandeCard: {
     flexDirection: 'row',
