@@ -72,6 +72,9 @@ export const colors = {
     medium: 'rgba(0, 0, 0, 0.1)',
     dark: 'rgba(0, 0, 0, 0.15)',
   },
+
+  // Skeleton loading color
+  skeleton: 'rgba(0, 0, 0, 0.06)',
 } as const;
 
 // Typography Scale (Swiss-inspired hierarchy)

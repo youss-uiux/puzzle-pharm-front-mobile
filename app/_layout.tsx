@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState, createContext, useContext } from 'react';
+import { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import 'react-native-reanimated';
 import { TamaguiProvider } from 'tamagui';
 import { Session } from '@supabase/supabase-js';
@@ -12,6 +12,7 @@ import { Session } from '@supabase/supabase-js';
 import config from '../tamagui.config';
 import { supabase, Profile } from '../lib/supabase';
 import { useColorScheme } from '@/components/useColorScheme';
+import { ToastProvider } from '../components/design-system';
 
 // Contexte d'authentification
 type AuthContextType = {
@@ -19,6 +20,7 @@ type AuthContextType = {
   profile: Profile | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -26,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   isLoading: true,
   signOut: async () => {},
+  refreshProfile: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -53,12 +56,20 @@ function useProtectedRoute(session: Session | null, profile: Profile | null, isL
     const inAuthGroup = segments[0] === '(auth)';
     const inClientGroup = segments[0] === '(client)';
     const inAgentGroup = segments[0] === '(agent)';
+    const isSetupPage = segments[1] === 'setup-profile';
+    const isVerifyPage = segments[1] === 'verify';
 
     if (!session && !inAuthGroup) {
       // Rediriger vers la page de login si non authentifié
       router.replace('/(auth)/login');
     } else if (session && profile) {
-      if (inAuthGroup) {
+      // Check if profile needs completion (no full_name)
+      if (!profile.full_name && inAuthGroup && !isSetupPage && !isVerifyPage) {
+        router.replace('/(auth)/setup-profile');
+        return;
+      }
+
+      if (inAuthGroup && !isSetupPage && !isVerifyPage) {
         // Rediriger selon le rôle après authentification
         if (profile.role === 'AGENT') {
           router.replace('/(agent)/dashboard');
@@ -97,38 +108,14 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  // Charger la session et le profil
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       // Essayer de récupérer le profil existant
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter l'erreur si pas de résultat
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -146,8 +133,8 @@ export default function RootLayout() {
           const phoneNumber = user.phone || user.user_metadata?.phone || '';
 
           // Utiliser upsert pour éviter les conflits
-          const { error: createError } = await supabase
-            .from('profiles')
+          const { error: createError } = await (supabase
+            .from('profiles') as any)
             .upsert(
               {
                 id: userId,
@@ -177,7 +164,38 @@ export default function RootLayout() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Refresh profile function exposed via context
+  const refreshProfile = useCallback(async () => {
+    if (session?.user?.id) {
+      await fetchProfile(session.user.id);
+    }
+  }, [session, fetchProfile]);
+
+  // Charger la session et le profil
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchProfile]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -192,15 +210,16 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthContext.Provider value={{ session, profile, isLoading, signOut }}>
-      <RootLayoutNav />
+    <AuthContext.Provider value={{ session, profile, isLoading, signOut, refreshProfile }}>
+      <ToastProvider>
+        <RootLayoutNav />
+      </ToastProvider>
     </AuthContext.Provider>
   );
 }
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { session } = useAuth();
 
   return (
     <TamaguiProvider config={config} defaultTheme={colorScheme ?? 'light'}>

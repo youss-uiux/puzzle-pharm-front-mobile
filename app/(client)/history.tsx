@@ -1,11 +1,13 @@
 /**
  * History Screen - Client
  * Modern Apothecary Design System
- * Demandes history with premium card design
+ * Demandes history with filters, best price badge, and relaunch
  */
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { RefreshControl, Linking, StyleSheet, Platform, Pressable, Animated, View as RNView, Text } from 'react-native';
-import { ScrollView, Spinner, View } from 'tamagui';
+import { RefreshControl, Linking, StyleSheet, Pressable, Animated, View as RNView, Text, Alert } from 'react-native';
+import { ScrollView, Spinner } from 'tamagui';
+import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import {
   Clock,
   CheckCircle,
@@ -14,7 +16,11 @@ import {
   Phone,
   ChevronDown,
   ChevronUp,
-  FileText
+  FileText,
+  Navigation,
+  RefreshCw,
+  Award,
+  Sparkles
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -27,6 +33,10 @@ import {
   radius,
   shadows,
   BackgroundShapes,
+  StatusTabs,
+  EmptyState,
+  SkeletonList,
+  useToast,
 } from '../../components/design-system';
 
 type DemandeWithPropositions = Demande & {
@@ -35,10 +45,13 @@ type DemandeWithPropositions = Demande & {
 
 export default function HistoryScreen() {
   const { session } = useAuth();
+  const router = useRouter();
+  const { showToast } = useToast();
   const [demandes, setDemandes] = useState<DemandeWithPropositions[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedDemande, setExpandedDemande] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>('all');
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -108,6 +121,12 @@ export default function HistoryScreen() {
           table: 'propositions',
         },
         () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          showToast({
+            type: 'success',
+            title: 'Nouvelle proposition',
+            message: 'Un agent a répondu à votre demande',
+          });
           fetchDemandes();
         }
       )
@@ -116,11 +135,25 @@ export default function HistoryScreen() {
     return () => {
       supabase.removeChannel(demandesChannel);
     };
-  }, [fetchDemandes, session?.user.id]);
+  }, [fetchDemandes, session?.user.id, showToast]);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     fetchDemandes();
+  };
+
+  // Filter demandes
+  const filteredDemandes = filter === 'all'
+    ? demandes
+    : demandes.filter(d => d.status === filter);
+
+  // Stats for tabs
+  const stats = {
+    all: demandes.length,
+    en_attente: demandes.filter(d => d.status === 'en_attente').length,
+    en_cours: demandes.filter(d => d.status === 'en_cours').length,
+    traite: demandes.filter(d => d.status === 'traite').length,
   };
 
   const getStatusConfig = (status: string) => {
@@ -146,14 +179,57 @@ export default function HistoryScreen() {
     });
   };
 
+  // Check if demande is stale (older than 24h)
+  const isStale = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    return diffHours > 24;
+  };
+
   const callPharmacy = (telephone: string) => {
     if (telephone) {
       Linking.openURL(`tel:${telephone}`);
     }
   };
 
+  const openMaps = (pharmacyName: string, address?: string | null, quartier?: string) => {
+    const query = address || `${pharmacyName} ${quartier}`;
+    const url = `https://maps.google.com/?q=${encodeURIComponent(query)}`;
+    Linking.openURL(url);
+  };
+
   const toggleExpanded = (demandeId: string) => {
     setExpandedDemande(expandedDemande === demandeId ? null : demandeId);
+  };
+
+  // Relaunch a demande
+  const handleRelaunch = (demande: DemandeWithPropositions) => {
+    Alert.alert(
+      'Relancer la recherche',
+      `Voulez-vous créer une nouvelle demande pour "${demande.medicament_nom}" ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Relancer',
+          onPress: () => {
+            router.push({
+              pathname: '/(client)/search',
+              params: {
+                prefill: demande.medicament_nom,
+                description: demande.description || '',
+              },
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  // Find cheapest proposition
+  const getCheapestProposition = (propositions: Proposition[]) => {
+    if (!propositions || propositions.length === 0) return null;
+    return propositions.reduce((min, p) => p.prix < min.prix ? p : min, propositions[0]);
   };
 
   return (
@@ -162,6 +238,30 @@ export default function HistoryScreen() {
       <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
+          <Text style={styles.headerTitle}>Mes demandes</Text>
+          <Text style={styles.headerSubtitle}>
+            Suivez l'état de vos recherches
+          </Text>
+        </Animated.View>
+
+        {/* Filter Tabs */}
+        <StatusTabs
+          activeStatus={filter}
+          onStatusChange={setFilter}
+          counts={stats}
+          showAll={true}
+        />
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -174,45 +274,23 @@ export default function HistoryScreen() {
           }
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
-          <Animated.View
-            style={[
-              styles.header,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <Text style={styles.headerTitle}>Mes demandes</Text>
-            <Text style={styles.headerSubtitle}>
-              Suivez l'état de vos recherches
-            </Text>
-          </Animated.View>
-
           {/* Liste */}
           {loading ? (
-            <RNView style={styles.loadingContainer}>
-              <Spinner size="large" color={colors.accent.primary} />
-              <Text style={styles.loadingText}>Chargement...</Text>
-            </RNView>
-          ) : demandes.length === 0 ? (
+            <SkeletonList count={3} />
+          ) : filteredDemandes.length === 0 ? (
             <Animated.View
-              style={[
-                styles.emptyCard,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
-                }
-              ]}
+              style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }],
+                marginHorizontal: spacing.lg,
+              }}
             >
-              <RNView style={styles.emptyIcon}>
-                <FileText size={48} color={colors.text.tertiary} />
-              </RNView>
-              <Text style={styles.emptyTitle}>Aucune demande</Text>
-              <Text style={styles.emptyText}>
-                Vous n'avez pas encore effectué de recherche
-              </Text>
+              <EmptyState
+                variant="history"
+                title={filter !== 'all' ? `Aucune demande "${getStatusConfig(filter).label.toLowerCase()}"` : undefined}
+                actionLabel={filter === 'all' ? 'Rechercher un médicament' : undefined}
+                onAction={filter === 'all' ? () => router.push('/(client)/search') : undefined}
+              />
             </Animated.View>
           ) : (
             <Animated.View
@@ -221,97 +299,178 @@ export default function HistoryScreen() {
                 transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
               }}
             >
-              {demandes.map((demande, index) => {
+              {filteredDemandes.map((demande) => {
                 const statusConfig = getStatusConfig(demande.status);
                 const StatusIcon = statusConfig.icon;
                 const isExpanded = expandedDemande === demande.id;
                 const hasPropositions = demande.propositions && demande.propositions.length > 0;
+                const cheapest = getCheapestProposition(demande.propositions);
+                const showRelaunch = demande.status === 'en_attente' && isStale(demande.created_at);
 
                 return (
                   <RNView key={demande.id} style={styles.demandeCard}>
                     {/* Header */}
-                    <RNView style={styles.demandeHeader}>
-                      <RNView style={styles.demandeInfo}>
-                        <Text style={styles.demandeMedicament}>{demande.medicament_nom}</Text>
-                        {demande.description && (
-                          <Text style={styles.demandeDescription} numberOfLines={2}>
-                            {demande.description}
+                    <Pressable
+                      onPress={() => hasPropositions && toggleExpanded(demande.id)}
+                      style={({ pressed }) => pressed && hasPropositions ? { opacity: 0.8 } : {}}
+                    >
+                      <RNView style={styles.demandeHeader}>
+                        <RNView style={styles.demandeInfo}>
+                          <RNView style={styles.medicamentRow}>
+                            <Text style={styles.demandeMedicament}>{demande.medicament_nom}</Text>
+                            {(demande as any).is_urgent && (
+                              <RNView style={styles.urgentBadge}>
+                                <Sparkles size={10} color={colors.error.primary} />
+                                <Text style={styles.urgentText}>Urgent</Text>
+                              </RNView>
+                            )}
+                          </RNView>
+                          {demande.description && (
+                            <Text style={styles.demandeDescription} numberOfLines={2}>
+                              {demande.description}
+                            </Text>
+                          )}
+                          <Text style={styles.demandeDate}>{formatDate(demande.created_at)}</Text>
+                        </RNView>
+                        <RNView style={styles.headerRight}>
+                          <RNView style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+                            <StatusIcon size={12} color={statusConfig.color} />
+                            <Text style={[styles.statusText, { color: statusConfig.color }]}>
+                              {statusConfig.label}
+                            </Text>
+                          </RNView>
+                          {hasPropositions && (
+                            <RNView style={styles.expandIcon}>
+                              {isExpanded ? (
+                                <ChevronUp size={20} color={colors.text.tertiary} />
+                              ) : (
+                                <ChevronDown size={20} color={colors.text.tertiary} />
+                              )}
+                            </RNView>
+                          )}
+                        </RNView>
+                      </RNView>
+                    </Pressable>
+
+                    {/* Propositions count */}
+                    {hasPropositions && !isExpanded && (
+                      <RNView style={styles.propositionsPreview}>
+                        <Text style={styles.propositionsCount}>
+                          {demande.propositions.length} proposition{demande.propositions.length > 1 ? 's' : ''} disponible{demande.propositions.length > 1 ? 's' : ''}
+                        </Text>
+                        {cheapest && (
+                          <Text style={styles.cheapestPreview}>
+                            à partir de {cheapest.prix.toLocaleString()} FCFA
                           </Text>
                         )}
-                        <Text style={styles.demandeDate}>{formatDate(demande.created_at)}</Text>
                       </RNView>
-                      <RNView style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
-                        <StatusIcon size={12} color={statusConfig.color} />
-                        <Text style={[styles.statusText, { color: statusConfig.color }]}>
-                          {statusConfig.label}
+                    )}
+
+                    {/* Relaunch button for stale demandes */}
+                    {showRelaunch && (
+                      <Pressable
+                        onPress={() => handleRelaunch(demande)}
+                        style={({ pressed }) => [
+                          styles.relaunchButton,
+                          pressed && styles.relaunchButtonPressed,
+                        ]}
+                      >
+                        <RefreshCw size={16} color={colors.accent.primary} />
+                        <Text style={styles.relaunchText}>Relancer la recherche</Text>
+                      </Pressable>
+                    )}
+
+                    {/* Expanded Propositions */}
+                    {isExpanded && hasPropositions && (
+                      <RNView style={styles.propositionsContainer}>
+                        <RNView style={styles.propositionsDivider} />
+                        <Text style={styles.propositionsTitle}>
+                          {demande.propositions.length} pharmacie{demande.propositions.length > 1 ? 's' : ''} trouvée{demande.propositions.length > 1 ? 's' : ''}
                         </Text>
-                      </RNView>
-                    </RNView>
 
-                    {/* Propositions */}
-                    {hasPropositions && (
-                      <>
-                        <Pressable
-                          onPress={() => toggleExpanded(demande.id)}
-                          style={({ pressed }) => [
-                            styles.propositionsToggle,
-                            pressed && styles.propositionsTogglePressed
-                          ]}
-                        >
-                          <Text style={styles.propositionsCount}>
-                            {demande.propositions.length} pharmacie{demande.propositions.length > 1 ? 's' : ''} disponible{demande.propositions.length > 1 ? 's' : ''}
-                          </Text>
-                          {isExpanded ? (
-                            <ChevronUp size={20} color={colors.accent.primary} />
-                          ) : (
-                            <ChevronDown size={20} color={colors.accent.primary} />
-                          )}
-                        </Pressable>
+                        {demande.propositions
+                          .sort((a, b) => a.prix - b.prix)
+                          .map((prop, idx) => {
+                            const isCheapest = cheapest?.id === prop.id && demande.propositions.length > 1;
 
-                        {isExpanded && (
-                          <RNView style={styles.propositionsList}>
-                            {demande.propositions.map((proposition) => (
-                              <RNView key={proposition.id} style={styles.propositionCard}>
-                                <RNView style={styles.propositionInfo}>
-                                  <Text style={styles.propositionName}>{proposition.pharmacie_nom}</Text>
-                                  <RNView style={styles.propositionLocation}>
-                                    <MapPin size={12} color={colors.text.tertiary} />
-                                    <Text style={styles.propositionAddress}>
-                                      {proposition.quartier}
-                                      {proposition.adresse && ` - ${proposition.adresse}`}
-                                    </Text>
+                            return (
+                              <RNView
+                                key={prop.id}
+                                style={[
+                                  styles.propositionCard,
+                                  isCheapest && styles.propositionCardCheapest,
+                                ]}
+                              >
+                                {isCheapest && (
+                                  <RNView style={styles.bestPriceBadge}>
+                                    <Award size={12} color={colors.success.primary} />
+                                    <Text style={styles.bestPriceText}>Meilleur prix</Text>
                                   </RNView>
-                                  <RNView style={styles.priceBadge}>
-                                    <Text style={styles.priceText}>
-                                      {proposition.prix.toLocaleString()} FCFA
+                                )}
+
+                                <RNView style={styles.propositionHeader}>
+                                  <RNView style={styles.propositionInfo}>
+                                    <Text style={styles.pharmacyName}>{prop.pharmacie_nom}</Text>
+                                    <RNView style={styles.locationRow}>
+                                      <MapPin size={12} color={colors.text.tertiary} />
+                                      <Text style={styles.locationText}>{prop.quartier}</Text>
+                                      {prop.adresse && (
+                                        <Text style={styles.addressText}> • {prop.adresse}</Text>
+                                      )}
+                                    </RNView>
+                                  </RNView>
+                                  <RNView style={[
+                                    styles.priceBadge,
+                                    isCheapest && styles.priceBadgeCheapest,
+                                  ]}>
+                                    <Text style={[
+                                      styles.priceText,
+                                      isCheapest && styles.priceTextCheapest,
+                                    ]}>
+                                      {prop.prix.toLocaleString()} F
                                     </Text>
                                   </RNView>
                                 </RNView>
 
-                                {proposition.telephone && (
+                                <RNView style={styles.propositionActions}>
                                   <Pressable
-                                    onPress={() => callPharmacy(proposition.telephone!)}
+                                    onPress={() => openMaps(prop.pharmacie_nom, prop.adresse, prop.quartier)}
                                     style={({ pressed }) => [
-                                      styles.callButton,
-                                      pressed && styles.callButtonPressed
+                                      styles.actionButton,
+                                      pressed && styles.actionButtonPressed,
                                     ]}
                                   >
-                                    <RNView style={styles.callButtonInner}>
-                                      <Phone size={18} color={colors.text.primary} />
-                                    </RNView>
+                                    <Navigation size={16} color={colors.info.primary} />
+                                    <Text style={styles.actionButtonText}>Itinéraire</Text>
                                   </Pressable>
-                                )}
+
+                                  {prop.telephone && (
+                                    <Pressable
+                                      onPress={() => callPharmacy(prop.telephone!)}
+                                      style={({ pressed }) => [
+                                        styles.actionButton,
+                                        styles.actionButtonCall,
+                                        pressed && styles.actionButtonPressed,
+                                      ]}
+                                    >
+                                      <Phone size={16} color={colors.success.primary} />
+                                      <Text style={[styles.actionButtonText, { color: colors.success.primary }]}>
+                                        Appeler
+                                      </Text>
+                                    </Pressable>
+                                  )}
+                                </RNView>
                               </RNView>
-                            ))}
-                          </RNView>
-                        )}
-                      </>
+                            );
+                          })}
+                      </RNView>
                     )}
                   </RNView>
                 );
               })}
             </Animated.View>
           )}
+
           <RNView style={{ height: 120 }} />
         </ScrollView>
       </SafeAreaView>
@@ -338,7 +497,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.md,
   },
   headerTitle: {
     ...typography.h1,
@@ -347,7 +506,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     ...typography.body,
-    color: colors.text.tertiary,
+    color: colors.text.secondary,
   },
 
   // Loading
@@ -359,37 +518,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     ...typography.body,
     color: colors.text.tertiary,
-  },
-
-  // Empty
-  emptyCard: {
-    marginHorizontal: spacing.lg,
-    backgroundColor: colors.surface.primary,
-    borderRadius: radius.card,
-    padding: spacing.xxl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    ...shadows.sm,
-  },
-  emptyIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  emptyTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
-  },
-  emptyText: {
-    ...typography.body,
-    color: colors.text.secondary,
-    textAlign: 'center',
   },
 
   // Demande Card
@@ -413,19 +541,44 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: spacing.md,
   },
+  medicamentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
   demandeMedicament: {
     ...typography.h4,
     color: colors.text.primary,
-    marginBottom: spacing.xs,
+  },
+  urgentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.error.light,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  urgentText: {
+    ...typography.caption,
+    color: colors.error.primary,
+    fontWeight: '600',
   },
   demandeDescription: {
-    ...typography.bodySmall,
+    ...typography.body,
     color: colors.text.secondary,
-    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
+    lineHeight: 20,
   },
   demandeDate: {
     ...typography.caption,
     color: colors.text.tertiary,
+    marginTop: spacing.sm,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: spacing.sm,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -439,83 +592,161 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '600',
   },
+  expandIcon: {
+    padding: spacing.xs,
+  },
 
-  // Propositions
-  propositionsToggle: {
+  // Propositions Preview
+  propositionsPreview: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  propositionsTogglePressed: {
-    backgroundColor: colors.surface.secondary,
   },
   propositionsCount: {
+    ...typography.bodySmall,
+    color: colors.accent.primary,
+    fontWeight: '500',
+  },
+  cheapestPreview: {
+    ...typography.bodySmall,
+    color: colors.success.primary,
+    fontWeight: '600',
+  },
+
+  // Relaunch Button
+  relaunchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.accent.primary,
+    borderStyle: 'dashed',
+  },
+  relaunchButtonPressed: {
+    backgroundColor: colors.accent.ultraLight,
+  },
+  relaunchText: {
     ...typography.label,
     color: colors.accent.primary,
   },
-  propositionsList: {
-    padding: spacing.md,
-    paddingTop: 0,
-    gap: spacing.sm,
+
+  // Propositions Container
+  propositionsContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
+  propositionsDivider: {
+    height: 1,
+    backgroundColor: colors.border.light,
+    marginBottom: spacing.md,
+  },
+  propositionsTitle: {
+    ...typography.label,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
+  },
+
+  // Proposition Card
   propositionCard: {
     backgroundColor: colors.surface.secondary,
     borderRadius: radius.lg,
     padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  propositionCardCheapest: {
+    backgroundColor: colors.success.light,
+    borderWidth: 1,
+    borderColor: colors.success.primary,
+  },
+  bestPriceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    marginBottom: spacing.sm,
+  },
+  bestPriceText: {
+    ...typography.caption,
+    color: colors.success.primary,
+    fontWeight: '700',
+  },
+  propositionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   propositionInfo: {
     flex: 1,
-    marginRight: spacing.md,
   },
-  propositionName: {
+  pharmacyName: {
     ...typography.label,
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
-  propositionLocation: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    marginBottom: spacing.sm,
+    flexWrap: 'wrap',
   },
-  propositionAddress: {
+  locationText: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  addressText: {
     ...typography.caption,
     color: colors.text.tertiary,
-    flex: 1,
   },
   priceBadge: {
-    backgroundColor: colors.success.light,
-    alignSelf: 'flex-start',
+    backgroundColor: colors.surface.tertiary,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.sm,
+    marginLeft: spacing.sm,
+  },
+  priceBadgeCheapest: {
+    backgroundColor: colors.success.primary,
   },
   priceText: {
     ...typography.label,
-    color: colors.success.primary,
+    color: colors.text.primary,
   },
-  callButton: {
-    borderRadius: radius.md,
-    overflow: 'hidden',
+  priceTextCheapest: {
+    color: colors.text.inverse,
   },
-  callButtonPressed: {
-    transform: [{ scale: 0.95 }],
-    opacity: 0.9,
+
+  // Action Buttons
+  propositionActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
-  callButtonInner: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent.primary,
-    justifyContent: 'center',
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    ...shadows.accent,
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.info.light,
+    borderRadius: radius.md,
+  },
+  actionButtonCall: {
+    backgroundColor: colors.success.light,
+  },
+  actionButtonPressed: {
+    opacity: 0.7,
+  },
+  actionButtonText: {
+    ...typography.label,
+    fontSize: 13,
+    color: colors.info.primary,
   },
 });
 

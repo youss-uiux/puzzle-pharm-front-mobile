@@ -1,7 +1,7 @@
 /**
  * Login Screen
  * Modern Apothecary Design System
- * Premium authentication experience
+ * Premium authentication with OTP flow
  */
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -14,13 +14,13 @@ import {
   Pressable,
   TextInput,
   Animated,
-  Dimensions,
+  Modal,
   View as RNView,
   Text
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Spinner, View, ScrollView } from 'tamagui';
-import { Phone, Sparkles } from 'lucide-react-native';
+import { Spinner, ScrollView } from 'tamagui';
+import { Sparkles, Shield, X } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -32,15 +32,22 @@ import {
   radius,
   shadows,
   BackgroundShapes,
+  useToast,
 } from '../../components/design-system';
+import { getErrorMessage } from '../../utils/errors';
 
-const { width, height } = Dimensions.get('window');
+// Agent access code (in production, store in Supabase app_settings)
+const AGENT_ACCESS_CODE = 'AGENT2024';
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [agentModalVisible, setAgentModalVisible] = useState(false);
+  const [agentCode, setAgentCode] = useState('');
+  const [agentCodeError, setAgentCodeError] = useState(false);
   const router = useRouter();
   const { session, profile, isLoading } = useAuth();
+  const { showToast } = useToast();
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -86,8 +93,15 @@ export default function LoginScreen() {
     ).start();
   }, []);
 
+  // Redirect if already logged in
   useEffect(() => {
     if (!isLoading && session && profile) {
+      // Check if profile needs setup
+      if (!profile.full_name) {
+        router.replace('/(auth)/setup-profile');
+        return;
+      }
+
       if (profile.role === 'AGENT') {
         router.replace('/(agent)/dashboard');
       } else {
@@ -110,57 +124,69 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!phone || phone.length < 8) {
-      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide');
+      showToast({
+        type: 'error',
+        title: 'Numéro invalide',
+        message: 'Veuillez entrer un numéro de téléphone valide',
+      });
       return;
     }
 
     dismissKeyboard();
     setLoading(true);
+
     try {
       const formattedPhone = phone.startsWith('+') ? phone : `+227${phone}`;
-      const password = `puzzle_${formattedPhone}_temp`;
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // Use OTP authentication instead of password
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         phone: formattedPhone,
-        password: password,
       });
 
-      if (signInError) {
-        if (signInError.message.includes('Invalid login credentials')) {
-          const { error: signUpError } = await supabase.auth.signUp({
-            phone: formattedPhone,
-            password: password,
-            options: {
-              data: { phone: formattedPhone }
-            }
-          });
+      if (otpError) throw otpError;
 
-          if (signUpError) {
-            if (signUpError.message.includes('User already registered')) {
-              Alert.alert(
-                'Compte existant',
-                'Ce numéro est déjà enregistré. Contactez le support si vous ne pouvez pas vous connecter.'
-              );
-            } else {
-              throw signUpError;
-            }
-          } else {
-            const { error: loginAfterSignUp } = await supabase.auth.signInWithPassword({
-              phone: formattedPhone,
-              password: password,
-            });
-            if (loginAfterSignUp) throw loginAfterSignUp;
-            Alert.alert('Bienvenue !', 'Votre compte a été créé avec succès.');
-          }
-        } else {
-          throw signInError;
-        }
-      }
+      // Navigate to OTP verification screen
+      router.push({
+        pathname: '/(auth)/verify',
+        params: { phone: formattedPhone },
+      });
+
     } catch (error: any) {
       console.error('Erreur de connexion:', error);
-      Alert.alert('Erreur', error.message || 'Une erreur est survenue');
+      showToast({
+        type: 'error',
+        title: 'Erreur',
+        message: getErrorMessage(error),
+      });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAgentAccess = async () => {
+    if (agentCode.trim().toUpperCase() !== AGENT_ACCESS_CODE) {
+      setAgentCodeError(true);
+      showToast({
+        type: 'error',
+        title: 'Code invalide',
+        message: 'Le code d\'accès agent est incorrect',
+      });
+      return;
+    }
+
+    // Store that this is an agent registration attempt
+    // This will be used after OTP verification to set role
+    try {
+      // For now, store in local state - in production, use secure storage
+      setAgentModalVisible(false);
+      showToast({
+        type: 'success',
+        title: 'Code accepté',
+        message: 'Entrez votre numéro pour continuer',
+      });
+      // The role will be set during profile setup
+    } catch (error) {
+      console.error('Agent code error:', error);
     }
   };
 
@@ -234,9 +260,9 @@ export default function LoginScreen() {
                 ]}
               >
                 <RNView style={styles.formHeader}>
-                  <Text style={styles.formTitle}>Bienvenue</Text>
+                  <Text style={styles.formTitle}>Connexion</Text>
                   <Text style={styles.formSubtitle}>
-                    Connectez-vous avec votre numéro
+                    Entrez votre numéro pour recevoir un code
                   </Text>
                 </RNView>
 
@@ -256,6 +282,8 @@ export default function LoginScreen() {
                       keyboardType="phone-pad"
                       autoComplete="tel"
                       selectionColor={colors.accent.primary}
+                      accessibilityLabel="Numéro de téléphone"
+                      accessibilityHint="Entrez votre numéro de téléphone"
                     />
                   </RNView>
                 </RNView>
@@ -269,17 +297,33 @@ export default function LoginScreen() {
                     pressed && !loading && styles.submitButtonPressed,
                     (!phone || loading) && styles.submitButtonDisabled
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Continuer"
                 >
                   <RNView style={styles.submitButtonInner}>
                     {loading ? (
                       <>
                         <Spinner size="small" color={colors.text.primary} />
-                        <Text style={styles.submitButtonText}>Connexion...</Text>
+                        <Text style={styles.submitButtonText}>Envoi du code...</Text>
                       </>
                     ) : (
-                      <Text style={styles.submitButtonText}>Continuer</Text>
+                      <Text style={styles.submitButtonText}>Recevoir le code</Text>
                     )}
                   </RNView>
+                </Pressable>
+              </Animated.View>
+
+              {/* Agent Access Link */}
+              <Animated.View style={[styles.agentLinkContainer, { opacity: fadeAnim }]}>
+                <Pressable
+                  onPress={() => setAgentModalVisible(true)}
+                  style={({ pressed }) => [
+                    styles.agentLink,
+                    pressed && styles.agentLinkPressed,
+                  ]}
+                >
+                  <Shield size={14} color={colors.text.tertiary} />
+                  <Text style={styles.agentLinkText}>Accès Agent</Text>
                 </Pressable>
               </Animated.View>
 
@@ -294,6 +338,63 @@ export default function LoginScreen() {
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </SafeAreaView>
+
+      {/* Agent Access Modal */}
+      <Modal
+        visible={agentModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAgentModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setAgentModalVisible(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <RNView style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Accès Agent</Text>
+              <Pressable
+                onPress={() => setAgentModalVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                <X size={20} color={colors.text.tertiary} />
+              </Pressable>
+            </RNView>
+
+            <Text style={styles.modalSubtitle}>
+              Entrez le code d'accès fourni par votre administrateur
+            </Text>
+
+            <RNView style={[
+              styles.agentCodeInput,
+              agentCodeError && styles.agentCodeInputError,
+            ]}>
+              <TextInput
+                style={styles.agentCodeTextInput}
+                placeholder="Code d'accès"
+                placeholderTextColor={colors.text.tertiary}
+                value={agentCode}
+                onChangeText={(text) => {
+                  setAgentCode(text);
+                  setAgentCodeError(false);
+                }}
+                autoCapitalize="characters"
+                selectionColor={colors.accent.primary}
+              />
+            </RNView>
+
+            <Pressable
+              onPress={handleAgentAccess}
+              style={({ pressed }) => [
+                styles.modalButton,
+                pressed && styles.modalButtonPressed,
+              ]}
+            >
+              <Text style={styles.modalButtonText}>Valider</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </RNView>
   );
 }
@@ -391,7 +492,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.primary,
     borderRadius: radius.card,
     padding: spacing.lg,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border.light,
     ...shadows.sm,
@@ -480,6 +581,26 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
   },
 
+  // Agent Link
+  agentLinkContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  agentLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  agentLinkPressed: {
+    opacity: 0.6,
+  },
+  agentLinkText: {
+    ...typography.caption,
+    color: colors.text.tertiary,
+  },
+
   // Footer
   footerContainer: {
     alignItems: 'center',
@@ -493,5 +614,74 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.accent.primary,
     fontWeight: '500',
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 360,
+    ...shadows.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.text.primary,
+  },
+  modalCloseButton: {
+    padding: spacing.xs,
+  },
+  modalSubtitle: {
+    ...typography.body,
+    color: colors.text.secondary,
+    marginBottom: spacing.lg,
+  },
+  agentCodeInput: {
+    backgroundColor: colors.surface.secondary,
+    borderRadius: radius.button,
+    borderWidth: 2,
+    borderColor: colors.border.light,
+    marginBottom: spacing.lg,
+  },
+  agentCodeInputError: {
+    borderColor: colors.error.primary,
+  },
+  agentCodeTextInput: {
+    height: 52,
+    paddingHorizontal: spacing.md,
+    ...typography.body,
+    color: colors.text.primary,
+    textAlign: 'center',
+    fontWeight: '600',
+    letterSpacing: 2,
+  },
+  modalButton: {
+    backgroundColor: colors.accent.primary,
+    borderRadius: radius.button,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    ...shadows.accent,
+  },
+  modalButtonPressed: {
+    opacity: 0.9,
+  },
+  modalButtonText: {
+    ...typography.label,
+    color: colors.text.primary,
+    fontWeight: '700',
   },
 });

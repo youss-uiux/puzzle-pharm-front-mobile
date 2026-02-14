@@ -38,7 +38,6 @@ export const pillTabBarStyle = {
   borderRadius: radius.pill,
   backgroundColor: 'transparent',
   borderTopWidth: 0,
-  elevation: 0,
   paddingBottom: 0,
   paddingTop: 0,
   ...shadows.lg,

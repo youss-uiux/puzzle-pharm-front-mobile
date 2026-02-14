@@ -1,22 +1,33 @@
 /**
  * Home Screen - Client
  * Modern Apothecary Design System
- * Bento Grid Layout with Search Bar prioritized
+ * Bento Grid Layout with active requests banner
  */
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   RefreshControl,
   Linking,
   StyleSheet,
-  Platform,
   Pressable,
   Animated,
-  Dimensions,
   View as RNView,
   Text,
+  TextInput,
 } from 'react-native';
-import { ScrollView, Spinner, View } from 'tamagui';
-import { MapPin, Phone, Clock, ArrowRight, Pill, Search, Grid3X3, Sparkles } from 'lucide-react-native';
+import { ScrollView, Spinner } from 'tamagui';
+import * as Haptics from 'expo-haptics';
+import {
+  MapPin,
+  Phone,
+  Clock,
+  ArrowRight,
+  Pill,
+  Search,
+  FileText,
+  Navigation,
+  AlertCircle,
+  Filter
+} from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
@@ -30,20 +41,24 @@ import {
   shadows,
   BackgroundShapes,
   BentoCard,
+  SkeletonList,
+  EmptyState,
 } from '../../components/design-system';
 
-const { width } = Dimensions.get('window');
-
 export default function HomeScreen() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const router = useRouter();
   const [pharmacies, setPharmacies] = useState<PharmacieGarde[]>([]);
+  const [filteredPharmacies, setFilteredPharmacies] = useState<PharmacieGarde[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [quartierFilter, setQuartierFilter] = useState('');
+  const [activeDemandesCount, setActiveDemandesCount] = useState(0);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const bannerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -61,7 +76,19 @@ export default function HomeScreen() {
     ]).start();
   }, []);
 
-  const fetchPharmaciesGarde = async () => {
+  // Animate banner when count changes
+  useEffect(() => {
+    if (activeDemandesCount > 0) {
+      Animated.spring(bannerAnim, {
+        toValue: 1,
+        damping: 15,
+        stiffness: 100,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [activeDemandesCount]);
+
+  const fetchPharmaciesGarde = useCallback(async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
 
@@ -74,25 +101,66 @@ export default function HomeScreen() {
 
       if (error) throw error;
       setPharmacies(data || []);
+      setFilteredPharmacies(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des pharmacies:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  const fetchActiveDemandesCount = useCallback(async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('demandes')
+        .select('*', { count: 'exact', head: true })
+        .eq('client_id', session.user.id)
+        .in('status', ['en_attente', 'en_cours']);
+
+      if (!error && count !== null) {
+        setActiveDemandesCount(count);
+      }
+    } catch (error) {
+      console.error('Error fetching active demandes:', error);
+    }
+  }, [session?.user?.id]);
 
   useEffect(() => {
     fetchPharmaciesGarde();
-  }, []);
+    fetchActiveDemandesCount();
+  }, [fetchPharmaciesGarde, fetchActiveDemandesCount]);
 
-  const onRefresh = () => {
+  // Filter pharmacies by quartier
+  useEffect(() => {
+    if (!quartierFilter.trim()) {
+      setFilteredPharmacies(pharmacies);
+    } else {
+      const filtered = pharmacies.filter(p =>
+        p.quartier.toLowerCase().includes(quartierFilter.toLowerCase()) ||
+        p.nom.toLowerCase().includes(quartierFilter.toLowerCase())
+      );
+      setFilteredPharmacies(filtered);
+    }
+  }, [quartierFilter, pharmacies]);
+
+  const onRefresh = async () => {
     setRefreshing(true);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     fetchPharmaciesGarde();
+    fetchActiveDemandesCount();
   };
 
   const callPharmacy = (telephone: string) => {
     Linking.openURL(`tel:${telephone}`);
+  };
+
+  const openMaps = (pharmacyName: string, quartier: string) => {
+    const query = `${pharmacyName} ${quartier}`;
+    const url = `https://maps.google.com/?q=${encodeURIComponent(query)}`;
+    Linking.openURL(url);
   };
 
   const getGreeting = () => {
@@ -102,11 +170,12 @@ export default function HomeScreen() {
     return 'Bonsoir';
   };
 
+  // Get unique quartiers for filter suggestions
+  const uniqueQuartiers = [...new Set(pharmacies.map(p => p.quartier))];
+
   return (
     <RNView style={styles.container}>
       <StatusBar style="dark" />
-
-      {/* Minimal Background */}
       <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
@@ -138,7 +207,43 @@ export default function HomeScreen() {
             </Text>
           </Animated.View>
 
-          {/* Hero Search Card - Full Width Bento */}
+          {/* Active Requests Banner */}
+          {activeDemandesCount > 0 && (
+            <Animated.View
+              style={{
+                opacity: bannerAnim,
+                transform: [{
+                  translateY: bannerAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-20, 0],
+                  })
+                }],
+              }}
+            >
+              <Pressable
+                onPress={() => router.push('/(client)/history')}
+                style={({ pressed }) => [
+                  styles.activeBanner,
+                  pressed && styles.activeBannerPressed,
+                ]}
+              >
+                <RNView style={styles.activeBannerIcon}>
+                  <AlertCircle size={20} color={colors.info.primary} />
+                </RNView>
+                <RNView style={styles.activeBannerContent}>
+                  <Text style={styles.activeBannerTitle}>
+                    {activeDemandesCount} demande{activeDemandesCount > 1 ? 's' : ''} en cours
+                  </Text>
+                  <Text style={styles.activeBannerSubtitle}>
+                    Tap pour voir le statut
+                  </Text>
+                </RNView>
+                <ArrowRight size={18} color={colors.info.primary} />
+              </Pressable>
+            </Animated.View>
+          )}
+
+          {/* Hero Search Card */}
           <Animated.View
             style={{
               opacity: fadeAnim,
@@ -198,178 +303,129 @@ export default function HomeScreen() {
               style={styles.bentoItem}
             >
               <RNView style={[styles.bentoIcon, { backgroundColor: colors.info.light }]}>
-                <Grid3X3 size={24} color={colors.info.primary} />
+                <FileText size={24} color={colors.info.primary} />
               </RNView>
-              <Text style={styles.bentoTitle}>Catégories</Text>
-              <Text style={styles.bentoDescription}>Explorer par type</Text>
+              <RNView style={styles.bentoTitleRow}>
+                <Text style={styles.bentoTitle}>Mes demandes</Text>
+                {activeDemandesCount > 0 && (
+                  <RNView style={styles.bentoBadge}>
+                    <Text style={styles.bentoBadgeText}>{activeDemandesCount}</Text>
+                  </RNView>
+                )}
+              </RNView>
+              <Text style={styles.bentoDescription}>Historique</Text>
             </BentoCard>
           </Animated.View>
 
-          {/* Section Pharmacies de garde */}
+          {/* Pharmacies de Garde Section */}
           <Animated.View
             style={[
               styles.section,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: Animated.multiply(slideAnim, 1.4) }],
+                transform: [{ translateY: Animated.multiply(slideAnim, 1.3) }],
               },
             ]}
           >
             <RNView style={styles.sectionHeader}>
-              <RNView style={styles.sectionTitleContainer}>
-                <RNView style={styles.sectionIcon}>
-                  <Clock size={16} color={colors.success.primary} />
-                </RNView>
-                <RNView>
-                  <Text style={styles.sectionTitle}>Pharmacies de garde</Text>
-                  <Text style={styles.sectionDate}>
-                    {new Date().toLocaleDateString('fr-FR', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                    })}
-                  </Text>
-                </RNView>
+              <RNView>
+                <Text style={styles.sectionTitle}>Pharmacies de garde</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Ouvertes 24h/24 aujourd'hui
+                </Text>
               </RNView>
-              <RNView style={styles.liveIndicator}>
-                <RNView style={styles.liveDot} />
-                <Text style={styles.liveText}>LIVE</Text>
+              <RNView style={styles.pharmacyCount}>
+                <Text style={styles.pharmacyCountText}>{pharmacies.length}</Text>
               </RNView>
             </RNView>
 
+            {/* Quartier Filter */}
+            {pharmacies.length > 3 && (
+              <RNView style={styles.filterContainer}>
+                <RNView style={styles.filterInput}>
+                  <Filter size={16} color={colors.text.tertiary} />
+                  <TextInput
+                    style={styles.filterTextInput}
+                    placeholder="Filtrer par quartier..."
+                    placeholderTextColor={colors.text.tertiary}
+                    value={quartierFilter}
+                    onChangeText={setQuartierFilter}
+                    selectionColor={colors.accent.primary}
+                  />
+                </RNView>
+              </RNView>
+            )}
+
+            {/* Pharmacies List */}
             {loading ? (
-              <RNView style={styles.loadingContainer}>
-                <Spinner size="large" color={colors.accent.primary} />
-                <Text style={styles.loadingText}>Chargement...</Text>
-              </RNView>
-            ) : pharmacies.length === 0 ? (
-              <RNView style={styles.emptyCard}>
-                <Text style={styles.emptyEmoji}>🏥</Text>
-                <Text style={styles.emptyTitle}>Aucune pharmacie</Text>
-                <Text style={styles.emptyText}>
-                  Aucune pharmacie de garde trouvée pour aujourd'hui
-                </Text>
-              </RNView>
+              <SkeletonList count={2} />
+            ) : filteredPharmacies.length === 0 ? (
+              <EmptyState
+                variant="pharmacies"
+                title={quartierFilter ? 'Aucune pharmacie trouvée' : undefined}
+                description={quartierFilter ? `Aucune pharmacie de garde dans "${quartierFilter}"` : undefined}
+              />
             ) : (
               <RNView style={styles.pharmaciesList}>
-                {pharmacies.map((pharmacie, index) => {
-                  const isLast = index === pharmacies.length - 1;
+                {filteredPharmacies.map((pharmacy) => (
+                  <RNView key={pharmacy.id} style={styles.pharmacieCard}>
+                    <RNView style={styles.pharmacieHeader}>
+                      <RNView style={styles.pharmacieInfo}>
+                        <Text style={styles.pharmacieName}>{pharmacy.nom}</Text>
+                        <RNView style={styles.pharmacieLocation}>
+                          <MapPin size={14} color={colors.text.tertiary} />
+                          <Text style={styles.pharmacieQuartier}>{pharmacy.quartier}</Text>
+                        </RNView>
+                      </RNView>
+                      <RNView style={styles.pharmacieHours}>
+                        <Clock size={14} color={colors.success.primary} />
+                        <Text style={styles.pharmacieHoursText}>24h</Text>
+                      </RNView>
+                    </RNView>
 
-                  return (
-                    <PharmacyCard
-                      key={pharmacie.id}
-                      pharmacie={pharmacie}
-                      index={index}
-                      isLast={isLast}
-                      onCall={callPharmacy}
-                      fadeAnim={fadeAnim}
-                      slideAnim={slideAnim}
-                    />
-                  );
-                })}
+                    <RNView style={styles.pharmacieActions}>
+                      <Pressable
+                        onPress={() => openMaps(pharmacy.nom, pharmacy.quartier)}
+                        style={({ pressed }) => [
+                          styles.pharmacieAction,
+                          pressed && styles.pharmacieActionPressed,
+                        ]}
+                        accessibilityLabel="Voir sur la carte"
+                        accessibilityRole="button"
+                      >
+                        <Navigation size={16} color={colors.info.primary} />
+                        <Text style={styles.pharmacieActionText}>Carte</Text>
+                      </Pressable>
+
+                      <Pressable
+                        onPress={() => callPharmacy(pharmacy.telephone)}
+                        style={({ pressed }) => [
+                          styles.pharmacieAction,
+                          styles.pharmacieActionCall,
+                          pressed && styles.pharmacieActionPressed,
+                        ]}
+                        accessibilityLabel={`Appeler ${pharmacy.nom}`}
+                        accessibilityRole="button"
+                      >
+                        <Phone size={16} color={colors.success.primary} />
+                        <Text style={[styles.pharmacieActionText, { color: colors.success.primary }]}>
+                          Appeler
+                        </Text>
+                      </Pressable>
+                    </RNView>
+                  </RNView>
+                ))}
               </RNView>
             )}
           </Animated.View>
 
+          {/* Spacer for tab bar */}
           <RNView style={{ height: 120 }} />
         </ScrollView>
       </SafeAreaView>
     </RNView>
   );
 }
-
-// Pharmacy Card Component
-interface PharmacyCardProps {
-  pharmacie: PharmacieGarde;
-  index: number;
-  isLast: boolean;
-  onCall: (telephone: string) => void;
-  fadeAnim: Animated.Value;
-  slideAnim: Animated.Value;
-}
-
-const PharmacyCard: React.FC<PharmacyCardProps> = ({
-  pharmacie,
-  index,
-  isLast,
-  onCall,
-  fadeAnim,
-  slideAnim,
-}) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.98,
-      damping: 15,
-      stiffness: 200,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      damping: 15,
-      stiffness: 200,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  return (
-    <Animated.View
-      style={[
-        styles.pharmacieCard,
-        isLast && styles.pharmacieCardLast,
-        {
-          opacity: fadeAnim,
-          transform: [
-            {
-              translateY: Animated.multiply(slideAnim, 1.5 + index * 0.15),
-            },
-            { scale: scaleAnim },
-          ],
-        },
-      ]}
-    >
-      <RNView style={styles.pharmacieContent}>
-        <RNView style={styles.pharmacieHeader}>
-          <RNView style={styles.pharmacieIndex}>
-            <Text style={styles.pharmacieIndexText}>
-              {String(index + 1).padStart(2, '0')}
-            </Text>
-          </RNView>
-          <RNView style={styles.pharmacieInfo}>
-            <Text style={styles.pharmacieName}>{pharmacie.nom}</Text>
-            <RNView style={styles.pharmacieAddress}>
-              <MapPin size={12} color={colors.text.tertiary} />
-              <Text style={styles.pharmacieAddressText} numberOfLines={1}>
-                {pharmacie.adresse}
-              </Text>
-            </RNView>
-          </RNView>
-        </RNView>
-
-        <RNView style={styles.pharmacieFooter}>
-          <RNView style={styles.pharmacieQuartier}>
-            <Text style={styles.pharmacieQuartierText}>{pharmacie.quartier}</Text>
-          </RNView>
-
-          <Pressable
-            onPress={() => onCall(pharmacie.telephone)}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            style={styles.callButton}
-          >
-            <RNView style={styles.callButtonInner}>
-              <Phone size={18} color={colors.text.primary} />
-            </RNView>
-          </Pressable>
-        </RNView>
-      </RNView>
-    </Animated.View>
-  );
-};
 
 const styles = StyleSheet.create({
   container: {
@@ -394,7 +450,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     ...typography.body,
-    color: colors.text.tertiary,
+    color: colors.text.secondary,
     marginBottom: spacing.xs,
   },
   userName: {
@@ -402,16 +458,51 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
   },
 
+  // Active Banner
+  activeBanner: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.info.light,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.info.primary,
+  },
+  activeBannerPressed: {
+    opacity: 0.8,
+  },
+  activeBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  activeBannerContent: {
+    flex: 1,
+  },
+  activeBannerTitle: {
+    ...typography.label,
+    color: colors.info.primary,
+  },
+  activeBannerSubtitle: {
+    ...typography.caption,
+    color: colors.info.secondary,
+  },
+
   // Search Card
   searchCard: {
     marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    backgroundColor: colors.accent.primary,
-    ...shadows.accent,
+    marginBottom: spacing.md,
   },
   searchCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   searchIconWrapper: {
     width: 56,
@@ -420,19 +511,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(26, 26, 26, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.md,
   },
   searchTextWrapper: {
     flex: 1,
+    marginLeft: spacing.md,
   },
   searchTitle: {
-    ...typography.h4,
+    ...typography.h3,
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
   searchSubtitle: {
     ...typography.bodySmall,
-    color: 'rgba(26, 26, 26, 0.6)',
+    color: colors.text.primary,
+    opacity: 0.7,
   },
   searchArrowWrapper: {
     width: 44,
@@ -448,11 +540,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   bentoItem: {
     flex: 1,
-    minHeight: 140,
   },
   bentoIcon: {
     width: 48,
@@ -462,14 +553,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
   },
+  bentoTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   bentoTitle: {
-    ...typography.h4,
+    ...typography.label,
     color: colors.text.primary,
-    marginBottom: spacing.xs,
+  },
+  bentoBadge: {
+    backgroundColor: colors.error.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  bentoBadgeText: {
+    ...typography.caption,
+    color: colors.text.inverse,
+    fontWeight: '700',
+    fontSize: 11,
   },
   bentoDescription: {
     ...typography.caption,
-    color: colors.text.tertiary,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
   },
 
   // Section
@@ -480,85 +590,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.lg,
-  },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  sectionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.success.light,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   sectionTitle: {
     ...typography.h4,
     color: colors.text.primary,
   },
-  sectionDate: {
+  sectionSubtitle: {
     ...typography.caption,
-    color: colors.text.tertiary,
-    marginTop: 2,
-    textTransform: 'capitalize',
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
   },
-  liveIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.error.light,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  pharmacyCount: {
+    backgroundColor: colors.accent.light,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: radius.pill,
   },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.error.primary,
-  },
-  liveText: {
-    ...typography.overline,
-    color: colors.error.primary,
+  pharmacyCountText: {
+    ...typography.label,
+    color: colors.accent.primary,
+    fontSize: 13,
   },
 
-  // Loading
-  loadingContainer: {
-    paddingVertical: spacing.xxxl,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing.md,
-    ...typography.body,
-    color: colors.text.tertiary,
-  },
-
-  // Empty state
-  emptyCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: radius.card,
-    padding: spacing.xxl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    ...shadows.sm,
-  },
-  emptyEmoji: {
-    fontSize: 48,
+  // Filter
+  filterContainer: {
     marginBottom: spacing.md,
   },
-  emptyTitle: {
-    ...typography.h4,
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
+  filterInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface.secondary,
+    borderRadius: radius.button,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
   },
-  emptyText: {
+  filterTextInput: {
+    flex: 1,
+    height: 44,
+    marginLeft: spacing.sm,
     ...typography.body,
-    color: colors.text.secondary,
-    textAlign: 'center',
+    color: colors.text.primary,
   },
 
   // Pharmacies list
@@ -573,29 +646,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border.light,
     ...shadows.sm,
   },
-  pharmacieCardLast: {
-    marginBottom: 0,
-  },
-  pharmacieContent: {
-    padding: spacing.lg,
-  },
   pharmacieHeader: {
+    padding: spacing.lg,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  pharmacieIndex: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  pharmacieIndexText: {
-    ...typography.label,
-    color: colors.accent.primary,
   },
   pharmacieInfo: {
     flex: 1,
@@ -605,43 +660,54 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
-  pharmacieAddress: {
+  pharmacieLocation: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
   },
-  pharmacieAddressText: {
-    ...typography.bodySmall,
-    color: colors.text.tertiary,
-    flex: 1,
-  },
-  pharmacieFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   pharmacieQuartier: {
-    backgroundColor: colors.accent.ultraLight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    ...typography.body,
+    color: colors.text.secondary,
+  },
+  pharmacieHours: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.success.light,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: radius.sm,
   },
-  pharmacieQuartierText: {
+  pharmacieHoursText: {
     ...typography.caption,
-    color: colors.accent.secondary,
+    color: colors.success.primary,
     fontWeight: '600',
   },
-  callButton: {
-    borderRadius: radius.md,
-    overflow: 'hidden',
+  pharmacieActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
   },
-  callButtonInner: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent.primary,
-    justifyContent: 'center',
+  pharmacieAction: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    ...shadows.accent,
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.info.light,
+  },
+  pharmacieActionCall: {
+    backgroundColor: colors.success.light,
+    borderLeftWidth: 1,
+    borderLeftColor: colors.border.light,
+  },
+  pharmacieActionPressed: {
+    opacity: 0.7,
+  },
+  pharmacieActionText: {
+    ...typography.label,
+    color: colors.info.primary,
+    fontSize: 13,
   },
 });
