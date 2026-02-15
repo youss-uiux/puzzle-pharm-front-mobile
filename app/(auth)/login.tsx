@@ -5,7 +5,6 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
@@ -138,18 +137,63 @@ export default function LoginScreen() {
     try {
       const formattedPhone = phone.startsWith('+') ? phone : `+227${phone}`;
 
-      // Use OTP authentication instead of password
-      const { error: otpError } = await supabase.auth.signInWithOtp({
+      // Temporary: Use password-based auth until OTP is configured
+      // Password format: puzzle_{phone}_temp
+      const password = `puzzle_${formattedPhone}_temp`;
+
+      // Try to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         phone: formattedPhone,
+        password: password,
       });
 
-      if (otpError) throw otpError;
+      if (signInError) {
+        // If user doesn't exist, create account
+        if (signInError.message.includes('Invalid login credentials')) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            phone: formattedPhone,
+            password: password,
+            options: {
+              data: { phone: formattedPhone }
+            }
+          });
 
-      // Navigate to OTP verification screen
-      router.push({
-        pathname: '/(auth)/verify',
-        params: { phone: formattedPhone },
-      });
+          if (signUpError) {
+            if (signUpError.message.includes('User already registered')) {
+              showToast({
+                type: 'error',
+                title: 'Compte existant',
+                message: 'Ce numéro est déjà enregistré. Contactez le support si vous ne pouvez pas vous connecter.',
+              });
+            } else {
+              throw signUpError;
+            }
+          } else {
+            // Try to sign in after signup
+            const { error: loginAfterSignUp } = await supabase.auth.signInWithPassword({
+              phone: formattedPhone,
+              password: password,
+            });
+            if (loginAfterSignUp) throw loginAfterSignUp;
+
+            showToast({
+              type: 'success',
+              title: 'Bienvenue !',
+              message: 'Votre compte a été créé avec succès.',
+            });
+          }
+        } else {
+          throw signInError;
+        }
+      } else {
+        showToast({
+          type: 'success',
+          title: 'Connexion réussie',
+          message: 'Bienvenue sur PuzzlePharm',
+        });
+      }
+
+      // Navigation handled by useProtectedRoute in _layout.tsx
 
     } catch (error: any) {
       console.error('Erreur de connexion:', error);
@@ -262,7 +306,7 @@ export default function LoginScreen() {
                 <RNView style={styles.formHeader}>
                   <Text style={styles.formTitle}>Connexion</Text>
                   <Text style={styles.formSubtitle}>
-                    Entrez votre numéro pour recevoir un code
+                    Entrez votre numéro de téléphone
                   </Text>
                 </RNView>
 
@@ -304,10 +348,10 @@ export default function LoginScreen() {
                     {loading ? (
                       <>
                         <Spinner size="small" color={colors.text.primary} />
-                        <Text style={styles.submitButtonText}>Envoi du code...</Text>
+                        <Text style={styles.submitButtonText}>Connexion...</Text>
                       </>
                     ) : (
-                      <Text style={styles.submitButtonText}>Recevoir le code</Text>
+                      <Text style={styles.submitButtonText}>Se connecter</Text>
                     )}
                   </RNView>
                 </Pressable>
