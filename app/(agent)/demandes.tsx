@@ -1,7 +1,7 @@
 /**
  * Demandes Screen - Agent
  * Modern Apothecary Design System
- * List and manage medication requests with premium design
+ * List and manage medication requests - Pharmacies from database only
  */
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
@@ -19,7 +19,8 @@ import {
   View as RNView,
   Text
 } from 'react-native';
-import { ScrollView, Spinner, View } from 'tamagui';
+import { ScrollView, Spinner } from 'tamagui';
+import * as Haptics from 'expo-haptics';
 import {
   Clock,
   CheckCircle,
@@ -32,11 +33,12 @@ import {
   ChevronRight,
   Pill,
   Sparkles,
-  MapPin
+  MapPin,
+  Ban
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { supabase, Demande } from '../../lib/supabase';
+import { supabase, Demande, PharmaciePublic } from '../../lib/supabase';
 import { useAuth } from '../_layout';
 import {
   colors,
@@ -45,6 +47,8 @@ import {
   radius,
   shadows,
   BackgroundShapes,
+  PharmacyPicker,
+  useToast,
 } from '../../components/design-system';
 
 type DemandeWithClient = Demande & {
@@ -62,24 +66,20 @@ type DemandeWithClient = Demande & {
   }>;
 };
 
+// Structure pour une proposition avec pharmacie sélectionnée
 type PropositionForm = {
-  pharmacie_nom: string;
+  pharmacie: PharmaciePublic | null;
   prix: string;
-  quartier: string;
-  adresse: string;
-  telephone: string;
 };
 
 const emptyProposition: PropositionForm = {
-  pharmacie_nom: '',
+  pharmacie: null,
   prix: '',
-  quartier: '',
-  adresse: '',
-  telephone: '',
 };
 
 export default function DemandesScreen() {
   const { session } = useAuth();
+  const { showToast } = useToast();
   const [demandes, setDemandes] = useState<DemandeWithClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -140,12 +140,19 @@ export default function DemandesScreen() {
     fetchDemandes();
     const channel = supabase
       .channel('agent-demandes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'demandes' }, () => fetchDemandes())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'demandes' }, () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        fetchDemandes();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetchDemandes]);
 
-  const onRefresh = () => { setRefreshing(true); fetchDemandes(); };
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    fetchDemandes();
+  };
 
   const openResponseModal = async (demande: DemandeWithClient) => {
     setSelectedDemande(demande);
@@ -162,48 +169,150 @@ export default function DemandesScreen() {
     setPropositions([{ ...emptyProposition }]);
   };
 
-  const addProposition = () => setPropositions([...propositions, { ...emptyProposition }]);
-  const removeProposition = (index: number) => {
-    if (propositions.length > 1) setPropositions(propositions.filter((_, i) => i !== index));
+  const addProposition = () => {
+    setPropositions([...propositions, { ...emptyProposition }]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
-  const updateProposition = (index: number, field: keyof PropositionForm, value: string) => {
+
+  const removeProposition = (index: number) => {
+    if (propositions.length > 1) {
+      setPropositions(propositions.filter((_, i) => i !== index));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  const updatePropositionPharmacy = (index: number, pharmacy: PharmaciePublic) => {
     const updated = [...propositions];
-    updated[index][field] = value;
+    updated[index].pharmacie = pharmacy;
     setPropositions(updated);
+  };
+
+  const updatePropositionPrice = (index: number, prix: string) => {
+    const updated = [...propositions];
+    updated[index].prix = prix;
+    setPropositions(updated);
+  };
+
+  // Marquer comme non disponible
+  const markAsUnavailable = async () => {
+    if (!selectedDemande) return;
+
+    Alert.alert(
+      'Médicament non disponible',
+      'Confirmer que ce médicament n\'est pas disponible dans les pharmacies partenaires ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          style: 'destructive',
+          onPress: async () => {
+            setSubmitting(true);
+            try {
+              // Créer une proposition "Non disponible"
+              const { error: propError } = await (supabase.from('propositions') as any).insert({
+                demande_id: selectedDemande.id,
+                pharmacie_nom: 'Non disponible',
+                prix: 0,
+                quartier: '-',
+                disponible: false,
+              });
+              if (propError) throw propError;
+
+              const { error: updateError } = await (supabase.from('demandes') as any)
+                .update({ status: 'traite' })
+                .eq('id', selectedDemande.id);
+              if (updateError) throw updateError;
+
+              showToast({
+                type: 'info',
+                title: 'Demande traitée',
+                message: 'Le client a été informé de l\'indisponibilité',
+              });
+              closeModal();
+              fetchDemandes();
+            } catch (error: any) {
+              showToast({
+                type: 'error',
+                title: 'Erreur',
+                message: error.message || 'Impossible de traiter la demande',
+              });
+            } finally {
+              setSubmitting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const submitPropositions = async () => {
     if (!selectedDemande) return;
-    const validPropositions = propositions.filter(p => p.pharmacie_nom.trim() && p.prix.trim() && p.quartier.trim());
+
+    const validPropositions = propositions.filter(p => p.pharmacie && p.prix.trim());
+
     if (validPropositions.length === 0) {
-      Alert.alert('Erreur', 'Veuillez ajouter au moins une proposition valide');
+      showToast({
+        type: 'error',
+        title: 'Erreur',
+        message: 'Veuillez ajouter au moins une proposition valide',
+      });
       return;
     }
-    Keyboard.dismiss();
-    setSubmitting(true);
-    try {
-      const { error: propError } = await (supabase.from('propositions') as any).insert(
-        validPropositions.map(p => ({
-          demande_id: selectedDemande.id,
-          pharmacie_nom: p.pharmacie_nom.trim(),
-          prix: parseFloat(p.prix),
-          quartier: p.quartier.trim(),
-          adresse: p.adresse.trim() || null,
-          telephone: p.telephone.trim() || null,
-          disponible: true,
-        }))
-      );
-      if (propError) throw propError;
-      const { error: updateError } = await (supabase.from('demandes') as any).update({ status: 'traite' }).eq('id', selectedDemande.id);
-      if (updateError) throw updateError;
-      Alert.alert('Succès', 'Propositions envoyées au client');
-      closeModal();
-      fetchDemandes();
-    } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Impossible d\'envoyer les propositions');
-    } finally {
-      setSubmitting(false);
-    }
+
+    // Confirmation avant envoi
+    const confirmMessage = `${validPropositions.length} proposition${validPropositions.length > 1 ? 's' : ''} pour "${selectedDemande.medicament_nom}" — Envoyer ?`;
+
+    Alert.alert(
+      'Confirmer l\'envoi',
+      confirmMessage,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Envoyer',
+          onPress: async () => {
+            Keyboard.dismiss();
+            setSubmitting(true);
+            try {
+              const { error: propError } = await (supabase.from('propositions') as any).insert(
+                validPropositions.map(p => ({
+                  demande_id: selectedDemande.id,
+                  pharmacie_id: p.pharmacie!.id,
+                  pharmacie_nom: p.pharmacie!.nom,
+                  prix: parseFloat(p.prix),
+                  quartier: p.pharmacie!.quartier,
+                  adresse: null, // L'adresse sera récupérée depuis la table pharmacies si besoin
+                  telephone: null, // Ne pas exposer le téléphone au client
+                  disponible: true,
+                }))
+              );
+              if (propError) throw propError;
+
+              const { error: updateError } = await (supabase.from('demandes') as any)
+                .update({ status: 'traite' })
+                .eq('id', selectedDemande.id);
+              if (updateError) throw updateError;
+
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              showToast({
+                type: 'success',
+                title: 'Envoyé !',
+                message: 'Propositions envoyées au client',
+              });
+              closeModal();
+              fetchDemandes();
+            } catch (error: any) {
+              showToast({
+                type: 'error',
+                title: 'Erreur',
+                message: error.message || 'Impossible d\'envoyer les propositions',
+              });
+            } finally {
+              setSubmitting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getStatusConfig = (status: string) => {
@@ -228,10 +337,10 @@ export default function DemandesScreen() {
   };
 
   const filters = [
-    { value: 'en_attente' as const, label: 'En attente' },
-    { value: 'en_cours' as const, label: 'En cours' },
-    { value: 'traite' as const, label: 'Traités' },
-    { value: 'all' as const, label: 'Tous' },
+    { value: 'en_attente' as const, label: 'En attente', count: demandes.filter(d => d.status === 'en_attente').length },
+    { value: 'en_cours' as const, label: 'En cours', count: demandes.filter(d => d.status === 'en_cours').length },
+    { value: 'traite' as const, label: 'Traités', count: demandes.filter(d => d.status === 'traite').length },
+    { value: 'all' as const, label: 'Tous', count: demandes.length },
   ];
 
   return (
@@ -246,16 +355,26 @@ export default function DemandesScreen() {
           <Text style={styles.headerSubtitle}>{demandes.filter(d => d.status === 'en_attente').length} en attente</Text>
         </Animated.View>
 
-        {/* Filtres */}
+        {/* Filtres avec badges */}
         <RNView style={styles.filterContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
             {filters.map((f) => (
               <Pressable
                 key={f.value}
-                onPress={() => setFilter(f.value)}
+                onPress={() => {
+                  setFilter(f.value);
+                  Haptics.selectionAsync();
+                }}
                 style={[styles.filterButton, filter === f.value && styles.filterButtonActive]}
               >
                 <Text style={[styles.filterText, filter === f.value && styles.filterTextActive]}>{f.label}</Text>
+                {f.count > 0 && (
+                  <RNView style={[styles.filterBadge, filter === f.value && styles.filterBadgeActive]}>
+                    <Text style={[styles.filterBadgeText, filter === f.value && styles.filterBadgeTextActive]}>
+                      {f.count}
+                    </Text>
+                  </RNView>
+                )}
               </Pressable>
             ))}
           </ScrollView>
@@ -285,6 +404,7 @@ export default function DemandesScreen() {
               const StatusIcon = statusConfig.icon;
               const isExpanded = expandedDemande === demande.id;
               const hasPropositions = demande.propositions && demande.propositions.length > 0;
+              const isUrgent = (demande as any).is_urgent;
 
               return (
                 <RNView key={demande.id} style={styles.demandeCard}>
@@ -302,7 +422,15 @@ export default function DemandesScreen() {
                     >
                       <RNView style={styles.demandeHeader}>
                         <RNView style={styles.demandeInfo}>
-                          <Text style={styles.demandeMedicament} numberOfLines={1}>{demande.medicament_nom}</Text>
+                          <RNView style={styles.demandeTitleRow}>
+                            <Text style={styles.demandeMedicament} numberOfLines={1}>{demande.medicament_nom}</Text>
+                            {isUrgent && (
+                              <RNView style={styles.urgentBadge}>
+                                <Sparkles size={10} color={colors.error.primary} />
+                                <Text style={styles.urgentText}>Urgent</Text>
+                              </RNView>
+                            )}
+                          </RNView>
                           <RNView style={styles.demandeClient}>
                             <Phone size={12} color={colors.text.tertiary} />
                             <Text style={styles.demandeClientText}>{demande.profiles?.full_name || demande.profiles?.phone || 'Client'}</Text>
@@ -347,16 +475,7 @@ export default function DemandesScreen() {
                                   <MapPin size={12} color={colors.text.tertiary} />
                                   <Text style={styles.propositionLocationText}>{prop.quartier}</Text>
                                 </RNView>
-                                {prop.adresse && (
-                                  <Text style={styles.propositionAddress}> • {prop.adresse}</Text>
-                                )}
                               </RNView>
-                              {prop.telephone && (
-                                <RNView style={styles.propositionPhone}>
-                                  <Phone size={12} color={colors.text.tertiary} />
-                                  <Text style={styles.propositionPhoneText}>{prop.telephone}</Text>
-                                </RNView>
-                              )}
                               <RNView style={styles.propositionPriceBadge}>
                                 <Text style={styles.propositionPriceText}>{prop.prix.toLocaleString()} FCFA</Text>
                               </RNView>
@@ -374,7 +493,7 @@ export default function DemandesScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* Modal */}
+      {/* Modal de réponse */}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>
         <RNView style={styles.modalContainer}>
           <SafeAreaView style={styles.modalSafeArea}>
@@ -394,7 +513,7 @@ export default function DemandesScreen() {
                   {/* Info */}
                   <RNView style={styles.infoCard}>
                     <Sparkles size={18} color={colors.accent.primary} />
-                    <Text style={styles.infoText}>Ajoutez les pharmacies où le médicament est disponible avec le prix.</Text>
+                    <Text style={styles.infoText}>Sélectionnez les pharmacies où le médicament est disponible et indiquez le prix.</Text>
                   </RNView>
 
                   {/* Propositions */}
@@ -412,39 +531,51 @@ export default function DemandesScreen() {
                         )}
                       </RNView>
 
+                      {/* Sélecteur de pharmacie */}
                       <RNView style={styles.formGroup}>
-                        <Text style={styles.label}>Nom de la pharmacie <Text style={styles.required}>*</Text></Text>
-                        <TextInput style={styles.input} placeholder="Ex: Pharmacie Centrale" placeholderTextColor={colors.text.tertiary} value={prop.pharmacie_nom} onChangeText={(v) => updateProposition(index, 'pharmacie_nom', v)} selectionColor={colors.accent.primary} />
+                        <Text style={styles.label}>Pharmacie <Text style={styles.required}>*</Text></Text>
+                        <PharmacyPicker
+                          selectedPharmacy={prop.pharmacie}
+                          onSelect={(pharmacy) => updatePropositionPharmacy(index, pharmacy)}
+                          placeholder="Sélectionner une pharmacie"
+                          error={false}
+                        />
                       </RNView>
 
-                      <RNView style={styles.formRow}>
-                        <RNView style={[styles.formGroup, { flex: 1 }]}>
-                          <Text style={styles.label}>Prix (FCFA) <Text style={styles.required}>*</Text></Text>
-                          <TextInput style={styles.input} placeholder="2500" placeholderTextColor={colors.text.tertiary} value={prop.prix} onChangeText={(v) => updateProposition(index, 'prix', v)} keyboardType="numeric" selectionColor={colors.accent.primary} />
+                      {/* Prix */}
+                      <RNView style={styles.formGroup}>
+                        <Text style={styles.label}>Prix (FCFA) <Text style={styles.required}>*</Text></Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Ex: 2500"
+                          placeholderTextColor={colors.text.tertiary}
+                          value={prop.prix}
+                          onChangeText={(v) => updatePropositionPrice(index, v)}
+                          keyboardType="numeric"
+                          selectionColor={colors.accent.primary}
+                        />
+                      </RNView>
+
+                      {/* Afficher le quartier si pharmacie sélectionnée */}
+                      {prop.pharmacie && (
+                        <RNView style={styles.selectedPharmacyInfo}>
+                          <MapPin size={14} color={colors.text.tertiary} />
+                          <Text style={styles.selectedPharmacyQuartier}>{prop.pharmacie.quartier}</Text>
                         </RNView>
-                        <RNView style={{ width: 12 }} />
-                        <RNView style={[styles.formGroup, { flex: 1 }]}>
-                          <Text style={styles.label}>Quartier <Text style={styles.required}>*</Text></Text>
-                          <TextInput style={styles.input} placeholder="Plateau" placeholderTextColor={colors.text.tertiary} value={prop.quartier} onChangeText={(v) => updateProposition(index, 'quartier', v)} selectionColor={colors.accent.primary} />
-                        </RNView>
-                      </RNView>
-
-                      <RNView style={styles.formGroup}>
-                        <Text style={styles.labelOptional}>Adresse (optionnel)</Text>
-                        <TextInput style={styles.input} placeholder="Rue du Commerce..." placeholderTextColor={colors.text.tertiary} value={prop.adresse} onChangeText={(v) => updateProposition(index, 'adresse', v)} selectionColor={colors.accent.primary} />
-                      </RNView>
-
-                      <RNView style={styles.formGroup}>
-                        <Text style={styles.labelOptional}>Téléphone (optionnel)</Text>
-                        <TextInput style={styles.input} placeholder="90 00 00 00" placeholderTextColor={colors.text.tertiary} value={prop.telephone} onChangeText={(v) => updateProposition(index, 'telephone', v)} keyboardType="phone-pad" selectionColor={colors.accent.primary} />
-                      </RNView>
+                      )}
                     </RNView>
                   ))}
 
-                  {/* Add button */}
+                  {/* Bouton ajouter */}
                   <Pressable onPress={addProposition} style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}>
                     <Plus size={20} color={colors.accent.primary} />
                     <Text style={styles.addButtonText}>Ajouter une pharmacie</Text>
+                  </Pressable>
+
+                  {/* Bouton Non disponible */}
+                  <Pressable onPress={markAsUnavailable} disabled={submitting} style={({ pressed }) => [styles.unavailableButton, pressed && styles.unavailableButtonPressed]}>
+                    <Ban size={18} color={colors.error.primary} />
+                    <Text style={styles.unavailableButtonText}>Médicament non disponible</Text>
                   </Pressable>
                 </ScrollView>
 
@@ -485,10 +616,39 @@ const styles = StyleSheet.create({
 
   filterContainer: { paddingBottom: spacing.md },
   filterScroll: { paddingHorizontal: spacing.lg, gap: spacing.sm },
-  filterButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.surface.primary, borderRadius: radius.md, ...shadows.sm },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface.primary,
+    borderRadius: radius.md,
+    ...shadows.sm
+  },
   filterButtonActive: { backgroundColor: colors.accent.primary },
   filterText: { ...typography.label, color: colors.text.secondary },
   filterTextActive: { color: colors.text.primary },
+  filterBadge: {
+    backgroundColor: colors.surface.secondary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  filterBadgeActive: {
+    backgroundColor: 'rgba(26, 26, 26, 0.15)',
+  },
+  filterBadgeText: {
+    ...typography.caption,
+    fontWeight: '700',
+    fontSize: 11,
+    color: colors.text.tertiary,
+  },
+  filterBadgeTextActive: {
+    color: colors.text.primary,
+  },
 
   listContainer: { flex: 1 },
   listContent: { paddingHorizontal: spacing.lg, paddingBottom: 20 },
@@ -507,8 +667,11 @@ const styles = StyleSheet.create({
   demandeContent: { flex: 1, padding: spacing.lg },
   demandeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   demandeInfo: { flex: 1, marginRight: spacing.md },
-  demandeMedicament: { ...typography.h4, color: colors.text.primary, marginBottom: spacing.xs },
-  demandeClient: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  demandeTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  demandeMedicament: { ...typography.h4, color: colors.text.primary },
+  urgentBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.error.light, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.sm },
+  urgentText: { ...typography.caption, color: colors.error.primary, fontWeight: '600', fontSize: 10 },
+  demandeClient: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs },
   demandeClientText: { ...typography.caption, color: colors.text.tertiary },
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm },
   statusText: { ...typography.caption, fontWeight: '600' },
@@ -538,15 +701,20 @@ const styles = StyleSheet.create({
   deleteButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.error.light, justifyContent: 'center', alignItems: 'center' },
 
   formGroup: { marginBottom: spacing.md },
-  formRow: { flexDirection: 'row' },
   label: { ...typography.label, color: colors.text.primary, marginBottom: spacing.sm },
-  labelOptional: { ...typography.label, color: colors.text.secondary, marginBottom: spacing.sm },
   required: { color: colors.error.primary },
   input: { backgroundColor: colors.surface.primary, borderRadius: radius.button, borderWidth: 2, borderColor: colors.border.light, height: 52, paddingHorizontal: spacing.md, ...typography.body, color: colors.text.primary },
 
-  addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, borderRadius: radius.button, borderWidth: 2, borderColor: colors.accent.primary, borderStyle: 'dashed' },
+  selectedPharmacyInfo: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingTop: spacing.sm },
+  selectedPharmacyQuartier: { ...typography.caption, color: colors.text.secondary },
+
+  addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, borderRadius: radius.button, borderWidth: 2, borderColor: colors.accent.primary, borderStyle: 'dashed', marginBottom: spacing.md },
   addButtonPressed: { backgroundColor: colors.accent.ultraLight },
   addButtonText: { ...typography.label, color: colors.accent.primary },
+
+  unavailableButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, borderRadius: radius.button, backgroundColor: colors.error.light },
+  unavailableButtonPressed: { opacity: 0.7 },
+  unavailableButtonText: { ...typography.label, color: colors.error.primary },
 
   modalFooter: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border.light },
   submitButton: { borderRadius: radius.button, overflow: 'hidden' },
@@ -564,12 +732,9 @@ const styles = StyleSheet.create({
   propositionNumberBadgeText: { ...typography.caption, fontWeight: '700', color: colors.accent.primary },
   propositionDetails: { flex: 1 },
   propositionPharmacyName: { ...typography.label, color: colors.text.primary, marginBottom: spacing.xs },
-  propositionRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: spacing.xs },
+  propositionRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: spacing.sm },
   propositionLocation: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   propositionLocationText: { ...typography.caption, color: colors.text.secondary },
-  propositionAddress: { ...typography.caption, color: colors.text.tertiary },
-  propositionPhone: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
-  propositionPhoneText: { ...typography.caption, color: colors.text.secondary },
   propositionPriceBadge: { backgroundColor: colors.success.light, alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm },
   propositionPriceText: { ...typography.label, color: colors.success.primary },
 });

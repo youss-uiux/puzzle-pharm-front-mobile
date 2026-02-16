@@ -91,14 +91,11 @@ export const TabBadge: React.FC<TabBadgeProps> = ({
   return (
     <Badge
       {...props}
-      style={[
-        styles.tabBadge,
-        {
-          top: offset.top,
-          right: offset.right,
-        },
-        props.style,
-      ]}
+      style={{
+        ...styles.tabBadge,
+        top: offset.top,
+        right: offset.right,
+      }}
     />
   );
 };

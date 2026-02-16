@@ -45,12 +45,15 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     outputRange: [0.3, 0.7],
   });
 
+  // Convert width to a valid type for Animated.View
+  const animatedWidth = typeof width === 'string' ? width as `${number}%` : width;
+
   return (
     <Animated.View
       style={[
         styles.skeleton,
         {
-          width: typeof width === 'number' ? width : width,
+          width: animatedWidth,
           height,
           borderRadius,
           opacity,

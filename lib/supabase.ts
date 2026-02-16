@@ -39,11 +39,39 @@ export interface PharmacieGarde {
   created_at: string
 }
 
+// Table permanente des pharmacies partenaires
+export interface Pharmacie {
+  id: string
+  matricule: string
+  nom: string
+  quartier: string
+  contact_nom: string | null
+  telephone: string | null // Non exposé aux clients
+  telephone_2: string | null
+  telephone_3: string | null
+  responsable_zone: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Vue publique des pharmacies (sans téléphones)
+export interface PharmaciePublic {
+  id: string
+  matricule: string
+  nom: string
+  quartier: string
+  is_active: boolean
+  created_at: string
+}
+
 export interface Demande {
   id: string
   client_id: string
   medicament_nom: string
   description: string | null
+  quantity?: number
+  is_urgent?: boolean
   status: DemandeStatus
   agent_id: string | null
   created_at: string
@@ -53,11 +81,12 @@ export interface Demande {
 export interface Proposition {
   id: string
   demande_id: string
+  pharmacie_id: string | null // Référence vers la table pharmacies
   pharmacie_nom: string
   prix: number
   quartier: string
   adresse: string | null
-  telephone: string | null
+  telephone: string | null // Non exposé aux clients
   disponible: boolean
   created_at: string
 }
