@@ -3,9 +3,9 @@
  * Modern Apothecary Design System
  * Bento grid stats with premium card design
  */
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { RefreshControl, StyleSheet, Platform, Pressable, Animated, View as RNView, Text } from 'react-native';
-import { ScrollView, Spinner, View } from 'tamagui';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { RefreshControl, StyleSheet, Pressable, View as RNView, Text } from 'react-native';
+import { ScrollView, Spinner } from 'tamagui';
 import {
   Clock,
   CheckCircle,
@@ -26,7 +26,6 @@ import {
   spacing,
   radius,
   shadows,
-  BackgroundShapes,
   BentoCard,
 } from '../../components/design-system';
 
@@ -50,25 +49,6 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        damping: 20,
-        stiffness: 90,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -133,14 +113,14 @@ export default function DashboardScreen() {
     fetchData();
   };
 
-  const getGreeting = () => {
+  const getGreeting = useCallback(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Bonjour';
     if (hour < 18) return 'Bon après-midi';
     return 'Bonsoir';
-  };
+  }, []);
 
-  const formatTime = (dateString: string) => {
+  const formatTime = useCallback((dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -151,9 +131,9 @@ export default function DashboardScreen() {
     if (diffMins < 60) return `${diffMins}min`;
     if (diffHours < 24) return `${diffHours}h`;
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-  };
+  }, []);
 
-  const getStatusConfig = (status: string) => {
+  const getStatusConfig = useCallback((status: string) => {
     switch (status) {
       case 'en_attente':
         return { color: colors.warning.primary, bgColor: colors.warning.light };
@@ -164,19 +144,18 @@ export default function DashboardScreen() {
       default:
         return { color: colors.text.tertiary, bgColor: colors.surface.secondary };
     }
-  };
+  }, []);
 
-  const statsCards = [
+  const statsCards = useMemo(() => [
     { title: 'En attente', value: stats.en_attente, icon: Clock, color: colors.warning.primary, bgColor: colors.warning.light },
     { title: 'En cours', value: stats.en_cours, icon: AlertCircle, color: colors.info.primary, bgColor: colors.info.light },
     { title: 'Traités', value: stats.traite, icon: CheckCircle, color: colors.success.primary, bgColor: colors.success.light },
     { title: 'Total', value: stats.total, icon: TrendingUp, color: colors.accent.primary, bgColor: colors.accent.light },
-  ];
+  ], [stats]);
 
   return (
     <RNView style={styles.container}>
       <StatusBar style="dark" />
-      <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -192,15 +171,7 @@ export default function DashboardScreen() {
           contentContainerStyle={styles.scrollContent}
         >
           {/* Header */}
-          <Animated.View
-            style={[
-              styles.header,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
+          <RNView style={styles.header}>
             <RNView>
               <Text style={styles.greeting}>{getGreeting()},</Text>
               <Text style={styles.userName}>
@@ -213,7 +184,7 @@ export default function DashboardScreen() {
                 <Text style={styles.alertBadgeText}>{stats.en_attente}</Text>
               </RNView>
             )}
-          </Animated.View>
+          </RNView>
 
           {loading ? (
             <RNView style={styles.loadingContainer}>
@@ -222,15 +193,7 @@ export default function DashboardScreen() {
           ) : (
             <>
               {/* Stats Grid - Bento Style */}
-              <Animated.View
-                style={[
-                  styles.statsGrid,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: Animated.multiply(slideAnim, 1.1) }]
-                  }
-                ]}
-              >
+              <RNView style={styles.statsGrid}>
                 {statsCards.map((stat, index) => {
                   const Icon = stat.icon;
                   return (
@@ -248,18 +211,10 @@ export default function DashboardScreen() {
                     </BentoCard>
                   );
                 })}
-              </Animated.View>
+              </RNView>
 
               {/* Recent Demandes */}
-              <Animated.View
-                style={[
-                  styles.section,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
-                  }
-                ]}
-              >
+              <RNView style={styles.section}>
                 <RNView style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Demandes récentes</Text>
                   <RNView style={styles.liveIndicator}>
@@ -326,7 +281,7 @@ export default function DashboardScreen() {
                   <Text style={styles.viewAllText}>Voir toutes les demandes</Text>
                   <ChevronRight size={18} color={colors.accent.primary} />
                 </Pressable>
-              </Animated.View>
+              </RNView>
             </>
           )}
           <RNView style={{ height: 120 }} />

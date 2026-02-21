@@ -3,7 +3,7 @@
  * Modern Apothecary Design System
  * List and manage medication requests - Pharmacies from database only
  */
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import {
   RefreshControl,
   Alert,
@@ -14,7 +14,6 @@ import {
   Keyboard,
   StyleSheet,
   Pressable,
-  Animated,
   TextInput,
   View as RNView,
   Text
@@ -46,7 +45,6 @@ import {
   spacing,
   radius,
   shadows,
-  BackgroundShapes,
   PharmacyPicker,
   useToast,
 } from '../../components/design-system';
@@ -77,6 +75,60 @@ const emptyProposition: PropositionForm = {
   prix: '',
 };
 
+// Composants mémoïsés pour optimiser les performances
+const FilterButton = memo(({
+  filter,
+  currentFilter,
+  onPress
+}: {
+  filter: { value: 'all' | 'en_attente' | 'en_cours' | 'traite', label: string, count: number },
+  currentFilter: string,
+  onPress: (value: 'all' | 'en_attente' | 'en_cours' | 'traite') => void
+}) => {
+  const isActive = currentFilter === filter.value;
+  return (
+    <Pressable
+      onPress={() => onPress(filter.value)}
+      style={[styles.filterButton, isActive && styles.filterButtonActive]}
+    >
+      <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{filter.label}</Text>
+      {filter.count > 0 && (
+        <RNView style={[styles.filterBadge, isActive && styles.filterBadgeActive]}>
+          <Text style={[styles.filterBadgeText, isActive && styles.filterBadgeTextActive]}>
+            {filter.count}
+          </Text>
+        </RNView>
+      )}
+    </Pressable>
+  );
+});
+
+const PropositionItem = memo(({
+  prop,
+  index
+}: {
+  prop: { id: string; pharmacie_nom: string; prix: number; quartier: string; adresse: string | null; telephone: string | null; },
+  index: number
+}) => (
+  <RNView style={styles.propositionItem}>
+    <RNView style={styles.propositionNumberBadge}>
+      <Text style={styles.propositionNumberBadgeText}>{index + 1}</Text>
+    </RNView>
+    <RNView style={styles.propositionDetails}>
+      <Text style={styles.propositionPharmacyName}>{prop.pharmacie_nom}</Text>
+      <RNView style={styles.propositionRow}>
+        <RNView style={styles.propositionLocation}>
+          <MapPin size={12} color={colors.text.tertiary} />
+          <Text style={styles.propositionLocationText}>{prop.quartier}</Text>
+        </RNView>
+      </RNView>
+      <RNView style={styles.propositionPriceBadge}>
+        <Text style={styles.propositionPriceText}>{prop.prix.toLocaleString()} FCFA</Text>
+      </RNView>
+    </RNView>
+  </RNView>
+));
+
 export default function DemandesScreen() {
   const { session } = useAuth();
   const { showToast } = useToast();
@@ -90,25 +142,6 @@ export default function DemandesScreen() {
   const [filter, setFilter] = useState<'all' | 'en_attente' | 'en_cours' | 'traite'>('en_attente');
   const [expandedDemande, setExpandedDemande] = useState<string | null>(null);
 
-  // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        damping: 20,
-        stiffness: 90,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const fetchDemandes = useCallback(async () => {
     try {
@@ -163,35 +196,35 @@ export default function DemandesScreen() {
     }
   };
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setModalVisible(false);
     setSelectedDemande(null);
     setPropositions([{ ...emptyProposition }]);
-  };
+  }, []);
 
-  const addProposition = () => {
+  const addProposition = useCallback(() => {
     setPropositions([...propositions, { ...emptyProposition }]);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+  }, [propositions]);
 
-  const removeProposition = (index: number) => {
+  const removeProposition = useCallback((index: number) => {
     if (propositions.length > 1) {
       setPropositions(propositions.filter((_, i) => i !== index));
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  };
+  }, [propositions]);
 
-  const updatePropositionPharmacy = (index: number, pharmacy: PharmaciePublic) => {
+  const updatePropositionPharmacy = useCallback((index: number, pharmacy: PharmaciePublic) => {
     const updated = [...propositions];
     updated[index].pharmacie = pharmacy;
     setPropositions(updated);
-  };
+  }, [propositions]);
 
-  const updatePropositionPrice = (index: number, prix: string) => {
+  const updatePropositionPrice = useCallback((index: number, prix: string) => {
     const updated = [...propositions];
     updated[index].prix = prix;
     setPropositions(updated);
-  };
+  }, [propositions]);
 
   // Marquer comme non disponible
   const markAsUnavailable = async () => {
@@ -315,16 +348,16 @@ export default function DemandesScreen() {
     );
   };
 
-  const getStatusConfig = (status: string) => {
+  const getStatusConfig = useCallback((status: string) => {
     switch (status) {
       case 'en_attente': return { label: 'En attente', color: colors.warning.primary, bgColor: colors.warning.light, icon: Clock };
       case 'en_cours': return { label: 'En cours', color: colors.info.primary, bgColor: colors.info.light, icon: AlertCircle };
       case 'traite': return { label: 'Traité', color: colors.success.primary, bgColor: colors.success.light, icon: CheckCircle };
       default: return { label: status, color: colors.text.tertiary, bgColor: colors.surface.secondary, icon: Clock };
     }
-  };
+  }, []);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -334,48 +367,39 @@ export default function DemandesScreen() {
     if (diffMins < 60) return `${diffMins}min`;
     if (diffHours < 24) return `${diffHours}h`;
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-  };
+  }, []);
 
-  const filters = [
+  const filters = useMemo(() => [
     { value: 'en_attente' as const, label: 'En attente', count: demandes.filter(d => d.status === 'en_attente').length },
     { value: 'en_cours' as const, label: 'En cours', count: demandes.filter(d => d.status === 'en_cours').length },
     { value: 'traite' as const, label: 'Traités', count: demandes.filter(d => d.status === 'traite').length },
     { value: 'all' as const, label: 'Tous', count: demandes.length },
-  ];
+  ], [demandes]);
 
   return (
     <RNView style={styles.container}>
       <StatusBar style="dark" />
-      <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
-        <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <RNView style={styles.header}>
           <Text style={styles.headerTitle}>Demandes</Text>
           <Text style={styles.headerSubtitle}>{demandes.filter(d => d.status === 'en_attente').length} en attente</Text>
-        </Animated.View>
+        </RNView>
 
         {/* Filtres avec badges */}
         <RNView style={styles.filterContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
             {filters.map((f) => (
-              <Pressable
+              <FilterButton
                 key={f.value}
-                onPress={() => {
-                  setFilter(f.value);
+                filter={f}
+                currentFilter={filter}
+                onPress={(value) => {
+                  setFilter(value);
                   Haptics.selectionAsync();
                 }}
-                style={[styles.filterButton, filter === f.value && styles.filterButtonActive]}
-              >
-                <Text style={[styles.filterText, filter === f.value && styles.filterTextActive]}>{f.label}</Text>
-                {f.count > 0 && (
-                  <RNView style={[styles.filterBadge, filter === f.value && styles.filterBadgeActive]}>
-                    <Text style={[styles.filterBadgeText, filter === f.value && styles.filterBadgeTextActive]}>
-                      {f.count}
-                    </Text>
-                  </RNView>
-                )}
-              </Pressable>
+              />
             ))}
           </ScrollView>
         </RNView>
@@ -464,23 +488,7 @@ export default function DemandesScreen() {
                         <RNView style={styles.propositionsDivider} />
                         <Text style={styles.propositionsHeader}>Propositions envoyées</Text>
                         {demande.propositions!.map((prop, index) => (
-                          <RNView key={prop.id} style={styles.propositionItem}>
-                            <RNView style={styles.propositionNumberBadge}>
-                              <Text style={styles.propositionNumberBadgeText}>{index + 1}</Text>
-                            </RNView>
-                            <RNView style={styles.propositionDetails}>
-                              <Text style={styles.propositionPharmacyName}>{prop.pharmacie_nom}</Text>
-                              <RNView style={styles.propositionRow}>
-                                <RNView style={styles.propositionLocation}>
-                                  <MapPin size={12} color={colors.text.tertiary} />
-                                  <Text style={styles.propositionLocationText}>{prop.quartier}</Text>
-                                </RNView>
-                              </RNView>
-                              <RNView style={styles.propositionPriceBadge}>
-                                <Text style={styles.propositionPriceText}>{prop.prix.toLocaleString()} FCFA</Text>
-                              </RNView>
-                            </RNView>
-                          </RNView>
+                          <PropositionItem key={prop.id} prop={prop} index={index} />
                         ))}
                       </RNView>
                     )}

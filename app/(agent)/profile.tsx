@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../_layout';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   colors,
   typography,
@@ -50,7 +50,7 @@ export default function AgentProfileScreen() {
     ]).start();
   }, []);
 
-  const handleSignOut = () => {
+  const handleSignOut = useCallback(() => {
     Alert.alert(
       'Déconnexion',
       'Êtes-vous sûr de vouloir vous déconnecter ?',
@@ -63,14 +63,14 @@ export default function AgentProfileScreen() {
         },
       ]
     );
-  };
+  }, [signOut]);
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     { icon: Headphones, label: 'Paramètres Agent', color: colors.success.primary },
     { icon: Bell, label: 'Notifications', color: colors.accent.primary },
     { icon: Shield, label: 'Sécurité', color: colors.info.primary },
     { icon: HelpCircle, label: 'Aide', color: colors.warning.primary },
-  ];
+  ], []);
 
   return (
     <RNView style={styles.container}>

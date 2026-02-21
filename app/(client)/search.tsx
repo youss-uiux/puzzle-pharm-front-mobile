@@ -3,7 +3,7 @@
  * Modern Apothecary Design System
  * Premium search with recent searches, quantity, urgency, auto-navigation
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,7 +12,6 @@ import {
   StyleSheet,
   Pressable,
   TextInput,
-  Animated,
   View as RNView,
   Text,
 } from 'react-native';
@@ -41,8 +40,6 @@ import {
   spacing,
   radius,
   shadows,
-  BackgroundShapes,
-  Button,
   useToast,
 } from '../../components/design-system';
 import { useRecentSearches } from '../../hooks/useRecentSearches';
@@ -63,10 +60,6 @@ export default function SearchScreen() {
   const [success, setSuccess] = useState(false);
   const [countdown, setCountdown] = useState(3);
 
-  // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const successScale = useRef(new Animated.Value(0)).current;
 
   // Prefill from params (e.g., from relaunch)
   useEffect(() => {
@@ -79,30 +72,7 @@ export default function SearchScreen() {
   }, [params]);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        damping: 20,
-        stiffness: 90,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  useEffect(() => {
     if (success) {
-      Animated.spring(successScale, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }).start();
-
       // Countdown and auto-navigate
       const timer = setInterval(() => {
         setCountdown((prev) => {
@@ -117,25 +87,24 @@ export default function SearchScreen() {
 
       return () => clearInterval(timer);
     } else {
-      successScale.setValue(0);
       setCountdown(3);
     }
   }, [success, router]);
 
-  const dismissKeyboard = () => {
+  const dismissKeyboard = useCallback(() => {
     Keyboard.dismiss();
-  };
+  }, []);
 
-  const handleQuantityChange = (delta: number) => {
+  const handleQuantityChange = useCallback((delta: number) => {
     const newQty = Math.max(1, Math.min(99, quantity + delta));
     setQuantity(newQty);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+  }, [quantity]);
 
-  const selectRecentSearch = (search: string) => {
+  const selectRecentSearch = useCallback((search: string) => {
     setMedicament(search);
     Haptics.selectionAsync();
-  };
+  }, []);
 
   const submitDemande = async () => {
     if (!medicament.trim()) {
@@ -188,15 +157,9 @@ export default function SearchScreen() {
     return (
       <RNView style={styles.container}>
         <StatusBar style="dark" />
-        <BackgroundShapes variant="search" />
 
         <SafeAreaView style={styles.successContainer}>
-          <Animated.View
-            style={[
-              styles.successContent,
-              { transform: [{ scale: successScale }] }
-            ]}
-          >
+          <RNView style={styles.successContent}>
             <RNView style={styles.successIcon}>
               <CheckCircle size={48} color={colors.surface.primary} />
             </RNView>
@@ -233,7 +196,7 @@ export default function SearchScreen() {
             >
               <Text style={styles.newSearchText}>Nouvelle recherche</Text>
             </Pressable>
-          </Animated.View>
+          </RNView>
         </SafeAreaView>
       </RNView>
     );
@@ -242,7 +205,6 @@ export default function SearchScreen() {
   return (
     <RNView style={styles.container}>
       <StatusBar style="dark" />
-      <BackgroundShapes variant="search" />
 
       <SafeAreaView style={styles.safeArea}>
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
@@ -257,29 +219,16 @@ export default function SearchScreen() {
               showsVerticalScrollIndicator={false}
             >
               {/* Header */}
-              <Animated.View
-                style={[
-                  styles.header,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }]
-                  }
-                ]}
-              >
+              <RNView style={styles.header}>
                 <Text style={styles.headerTitle}>Rechercher</Text>
                 <Text style={styles.headerSubtitle}>
                   Trouvez votre médicament en quelques clics
                 </Text>
-              </Animated.View>
+              </RNView>
 
               {/* Recent Searches */}
               {recentSearches.length > 0 && !medicament && (
-                <Animated.View
-                  style={[
-                    styles.recentContainer,
-                    { opacity: fadeAnim }
-                  ]}
-                >
+                <RNView style={styles.recentContainer}>
                   <RNView style={styles.recentHeader}>
                     <Clock size={14} color={colors.text.tertiary} />
                     <Text style={styles.recentTitle}>Recherches récentes</Text>
@@ -307,19 +256,11 @@ export default function SearchScreen() {
                       </Pressable>
                     ))}
                   </RNView>
-                </Animated.View>
+                </RNView>
               )}
 
               {/* Form Card */}
-              <Animated.View
-                style={[
-                  styles.formCard,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }]
-                  }
-                ]}
-              >
+              <RNView style={styles.formCard}>
                 {/* Medication Name */}
                 <RNView style={styles.inputGroup}>
                   <Text style={styles.label}>
@@ -461,20 +402,15 @@ export default function SearchScreen() {
                     )}
                   </RNView>
                 </Pressable>
-              </Animated.View>
+              </RNView>
 
               {/* Info Card */}
-              <Animated.View
-                style={[
-                  styles.infoCard,
-                  { opacity: fadeAnim }
-                ]}
-              >
+              <RNView style={styles.infoCard}>
                 <Sparkles size={18} color={colors.accent.primary} />
                 <Text style={styles.infoText}>
                   Notre équipe recherche dans les pharmacies partenaires et vous répond rapidement.
                 </Text>
-              </Animated.View>
+              </RNView>
             </ScrollView>
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>

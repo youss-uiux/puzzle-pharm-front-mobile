@@ -1,10 +1,9 @@
 /**
  * Organic Shapes Component
- * Background decorations for Modern Apothecary - Arches, circles, and organic forms
+ * Background decorations for Modern Apothecary - Lightweight version
  */
-import React from 'react';
+import React, { memo } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { colors } from '../../constants/theme';
 
 interface OrganicShapeProps {
@@ -15,96 +14,64 @@ interface OrganicShapeProps {
   style?: ViewStyle;
 }
 
-export const OrganicShape: React.FC<OrganicShapeProps> = ({
+// Version simplifiée avec des formes CSS au lieu de SVG complexes
+export const OrganicShape: React.FC<OrganicShapeProps> = memo(({
   variant,
   size = 200,
   color = colors.accent.primary,
   opacity = 0.08,
   style,
 }) => {
-  const renderShape = () => {
+  const getShapeStyle = () => {
+    const baseStyle = {
+      width: size,
+      height: variant === 'arch' ? size * 0.6 : size,
+      backgroundColor: color,
+      opacity,
+    };
+
     switch (variant) {
       case 'circle':
-        return (
-          <Svg width={size} height={size} viewBox="0 0 200 200">
-            <Defs>
-              <LinearGradient id="circleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor={color} stopOpacity={opacity} />
-                <Stop offset="100%" stopColor={color} stopOpacity={opacity * 0.3} />
-              </LinearGradient>
-            </Defs>
-            <Circle cx="100" cy="100" r="100" fill="url(#circleGrad)" />
-          </Svg>
-        );
-
-      case 'arch':
-        return (
-          <Svg width={size} height={size * 0.6} viewBox="0 0 200 120">
-            <Defs>
-              <LinearGradient id="archGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor={color} stopOpacity={opacity} />
-                <Stop offset="100%" stopColor={color} stopOpacity={opacity * 0.3} />
-              </LinearGradient>
-            </Defs>
-            <Path
-              d="M0 120 L0 60 Q0 0 100 0 Q200 0 200 60 L200 120 Z"
-              fill="url(#archGrad)"
-            />
-          </Svg>
-        );
-
-      case 'blob':
-        return (
-          <Svg width={size} height={size} viewBox="0 0 200 200">
-            <Defs>
-              <LinearGradient id="blobGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor={color} stopOpacity={opacity} />
-                <Stop offset="100%" stopColor={color} stopOpacity={opacity * 0.3} />
-              </LinearGradient>
-            </Defs>
-            <Path
-              d="M100 0 Q150 20 180 60 Q200 100 180 140 Q150 180 100 200 Q50 180 20 140 Q0 100 20 60 Q50 20 100 0 Z"
-              fill="url(#blobGrad)"
-            />
-          </Svg>
-        );
-
+        return { ...baseStyle, borderRadius: size / 2 };
       case 'ring':
-        return (
-          <Svg width={size} height={size} viewBox="0 0 200 200">
-            <Defs>
-              <LinearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor={color} stopOpacity={opacity} />
-                <Stop offset="100%" stopColor={color} stopOpacity={opacity * 0.5} />
-              </LinearGradient>
-            </Defs>
-            <Circle
-              cx="100"
-              cy="100"
-              r="90"
-              fill="none"
-              stroke="url(#ringGrad)"
-              strokeWidth="20"
-            />
-          </Svg>
-        );
-
+        return {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: 20,
+          borderColor: color,
+          backgroundColor: 'transparent',
+          opacity,
+        };
+      case 'arch':
+        return {
+          ...baseStyle,
+          borderTopLeftRadius: size / 2,
+          borderTopRightRadius: size / 2,
+        };
+      case 'blob':
+        return {
+          ...baseStyle,
+          borderRadius: size / 3,
+          transform: [{ rotate: '45deg' }],
+        };
       default:
-        return null;
+        return baseStyle;
     }
   };
 
-  return <View style={[styles.container, style]}>{renderShape()}</View>;
-};
+  return <View style={[styles.container, style, getShapeStyle()]} />;
+});
 
-// Pre-configured background layouts
+// Pre-configured background layouts - Simplified
 interface BackgroundShapesProps {
   variant?: 'home' | 'search' | 'profile' | 'detail';
 }
 
-export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
+export const BackgroundShapes: React.FC<BackgroundShapesProps> = memo(({
   variant = 'home',
 }) => {
+  // Version simplifiée avec moins d'éléments pour optimiser les performances
   const renderVariant = () => {
     switch (variant) {
       case 'home':
@@ -112,24 +79,10 @@ export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
           <>
             <OrganicShape
               variant="circle"
-              size={350}
+              size={300}
               color={colors.accent.primary}
-              opacity={0.04}
+              opacity={0.03}
               style={styles.homeCircle1}
-            />
-            <OrganicShape
-              variant="arch"
-              size={280}
-              color={colors.success.primary}
-              opacity={0.03}
-              style={styles.homeArch}
-            />
-            <OrganicShape
-              variant="ring"
-              size={200}
-              color={colors.accent.primary}
-              opacity={0.03}
-              style={styles.homeRing}
             />
           </>
         );
@@ -138,17 +91,10 @@ export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
         return (
           <>
             <OrganicShape
-              variant="blob"
-              size={320}
-              color={colors.accent.primary}
-              opacity={0.03}
-              style={styles.searchBlob1}
-            />
-            <OrganicShape
               variant="circle"
-              size={180}
+              size={200}
               color={colors.info.primary}
-              opacity={0.025}
+              opacity={0.02}
               style={styles.searchCircle}
             />
           </>
@@ -159,17 +105,10 @@ export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
           <>
             <OrganicShape
               variant="arch"
-              size={400}
+              size={350}
               color={colors.accent.primary}
-              opacity={0.05}
+              opacity={0.03}
               style={styles.profileArch}
-            />
-            <OrganicShape
-              variant="ring"
-              size={220}
-              color={colors.success.primary}
-              opacity={0.025}
-              style={styles.profileRing}
             />
           </>
         );
@@ -179,17 +118,10 @@ export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
           <>
             <OrganicShape
               variant="arch"
-              size={450}
+              size={400}
               color={colors.accent.primary}
-              opacity={0.08}
-              style={styles.detailArch}
-            />
-            <OrganicShape
-              variant="circle"
-              size={140}
-              color={colors.accent.secondary}
               opacity={0.04}
-              style={styles.detailCircle}
+              style={styles.detailArch}
             />
           </>
         );
@@ -200,7 +132,7 @@ export const BackgroundShapes: React.FC<BackgroundShapesProps> = ({
   };
 
   return <View style={styles.backgroundContainer}>{renderVariant()}</View>;
-};
+});
 
 const styles = StyleSheet.create({
   container: {

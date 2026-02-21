@@ -20,78 +20,18 @@ interface AnimatedSplashScreenProps {
 export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
   onAnimationFinish,
 }) => {
-  // Animations
-  const bounceAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.3)).current;
+  // Animations simplifiées
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Séquence d'animation
+    // Animation simple et rapide
     Animated.sequence([
-      // 1. Fade in + Scale up
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 50,
-          friction: 7,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      // 2. Bounce (3 rebonds)
-      Animated.sequence([
-        // Premier bounce
-        Animated.spring(bounceAnim, {
-          toValue: -30,
-          tension: 100,
-          friction: 3,
-          useNativeDriver: true,
-        }),
-        Animated.spring(bounceAnim, {
-          toValue: 0,
-          tension: 100,
-          friction: 5,
-          useNativeDriver: true,
-        }),
-
-        // Deuxième bounce (plus petit)
-        Animated.spring(bounceAnim, {
-          toValue: -20,
-          tension: 100,
-          friction: 3,
-          useNativeDriver: true,
-        }),
-        Animated.spring(bounceAnim, {
-          toValue: 0,
-          tension: 100,
-          friction: 5,
-          useNativeDriver: true,
-        }),
-
-        // Troisième bounce (encore plus petit)
-        Animated.spring(bounceAnim, {
-          toValue: -10,
-          tension: 100,
-          friction: 3,
-          useNativeDriver: true,
-        }),
-        Animated.spring(bounceAnim, {
-          toValue: 0,
-          tension: 100,
-          friction: 5,
-          useNativeDriver: true,
-        }),
-      ]),
-
-      // 3. Petit délai avant de continuer
-      Animated.delay(300),
-
-      // 4. Fade out
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.delay(600),
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 300,
@@ -112,10 +52,6 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
           styles.logoContainer,
           {
             opacity: fadeAnim,
-            transform: [
-              { scale: scaleAnim },
-              { translateY: bounceAnim },
-            ],
           },
         ]}
       >

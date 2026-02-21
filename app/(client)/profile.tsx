@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../_layout';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   colors,
   typography,
@@ -50,7 +50,7 @@ export default function ProfileScreen() {
     ]).start();
   }, []);
 
-  const handleSignOut = () => {
+  const handleSignOut = useCallback(() => {
     Alert.alert(
       'Déconnexion',
       'Êtes-vous sûr de vouloir vous déconnecter ?',
@@ -63,13 +63,13 @@ export default function ProfileScreen() {
         },
       ]
     );
-  };
+  }, [signOut]);
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     { icon: Bell, label: 'Notifications', color: colors.accent.primary },
     { icon: Shield, label: 'Confidentialité', color: colors.success.primary },
     { icon: HelpCircle, label: 'Aide & Support', color: colors.info.primary },
-  ];
+  ], []);
 
   return (
     <RNView style={styles.container}>

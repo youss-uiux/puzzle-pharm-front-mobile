@@ -3,7 +3,7 @@
  * Modern Apothecary Design System
  * Demandes history with filters, best price badge, and relaunch
  */
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { RefreshControl, Linking, StyleSheet, Pressable, Animated, View as RNView, Text, Alert } from 'react-native';
 import { ScrollView, Spinner } from 'tamagui';
 import { useRouter } from 'expo-router';
@@ -144,19 +144,20 @@ export default function HistoryScreen() {
   };
 
   // Filter demandes
-  const filteredDemandes = filter === 'all'
-    ? demandes
-    : demandes.filter(d => d.status === filter);
+  const filteredDemandes = useMemo(() =>
+    filter === 'all' ? demandes : demandes.filter(d => d.status === filter),
+    [filter, demandes]
+  );
 
   // Stats for tabs
-  const stats = {
+  const stats = useMemo(() => ({
     all: demandes.length,
     en_attente: demandes.filter(d => d.status === 'en_attente').length,
     en_cours: demandes.filter(d => d.status === 'en_cours').length,
     traite: demandes.filter(d => d.status === 'traite').length,
-  };
+  }), [demandes]);
 
-  const getStatusConfig = (status: string) => {
+  const getStatusConfig = useCallback((status: string) => {
     switch (status) {
       case 'en_attente':
         return { label: 'En attente', color: colors.warning.primary, bgColor: colors.warning.light, icon: Clock };
@@ -167,9 +168,9 @@ export default function HistoryScreen() {
       default:
         return { label: status, color: colors.text.tertiary, bgColor: colors.surface.secondary, icon: Clock };
     }
-  };
+  }, []);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
       day: 'numeric',
@@ -177,27 +178,27 @@ export default function HistoryScreen() {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
+  }, []);
 
   // Check if demande is stale (older than 24h)
-  const isStale = (dateString: string) => {
+  const isStale = useCallback((dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
     return diffHours > 24;
-  };
+  }, []);
 
-  const callPharmacy = (telephone: string) => {
+  const callPharmacy = useCallback((telephone: string) => {
     if (telephone) {
       Linking.openURL(`tel:${telephone}`);
     }
-  };
+  }, []);
 
-  const openMaps = (pharmacyName: string, address?: string | null, quartier?: string) => {
+  const openMaps = useCallback((pharmacyName: string, address?: string | null, quartier?: string) => {
     const query = address || `${pharmacyName} ${quartier}`;
     const url = `https://maps.google.com/?q=${encodeURIComponent(query)}`;
     Linking.openURL(url);
-  };
+  }, []);
 
   const toggleExpanded = (demandeId: string) => {
     setExpandedDemande(expandedDemande === demandeId ? null : demandeId);

@@ -3,18 +3,17 @@
  * Modern Apothecary Design System
  * Bento Grid Layout with active requests banner
  */
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   RefreshControl,
   Linking,
   StyleSheet,
   Pressable,
-  Animated,
   View as RNView,
   Text,
   TextInput,
 } from 'react-native';
-import { ScrollView, Spinner } from 'tamagui';
+import { ScrollView } from 'tamagui';
 import * as Haptics from 'expo-haptics';
 import {
   MapPin,
@@ -39,7 +38,6 @@ import {
   spacing,
   radius,
   shadows,
-  BackgroundShapes,
   BentoCard,
   SkeletonList,
   EmptyState,
@@ -55,38 +53,6 @@ export default function HomeScreen() {
   const [quartierFilter, setQuartierFilter] = useState('');
   const [activeDemandesCount, setActiveDemandesCount] = useState(0);
 
-  // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const bannerAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        damping: 20,
-        stiffness: 90,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  // Animate banner when count changes
-  useEffect(() => {
-    if (activeDemandesCount > 0) {
-      Animated.spring(bannerAnim, {
-        toValue: 1,
-        damping: 15,
-        stiffness: 100,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [activeDemandesCount]);
 
   const fetchPharmaciesGarde = useCallback(async () => {
     try {
@@ -153,30 +119,29 @@ export default function HomeScreen() {
     fetchActiveDemandesCount();
   };
 
-  const callPharmacy = (telephone: string) => {
+  const callPharmacy = useCallback((telephone: string) => {
     Linking.openURL(`tel:${telephone}`);
-  };
+  }, []);
 
-  const openMaps = (pharmacyName: string, quartier: string) => {
+  const openMaps = useCallback((pharmacyName: string, quartier: string) => {
     const query = `${pharmacyName} ${quartier}`;
     const url = `https://maps.google.com/?q=${encodeURIComponent(query)}`;
     Linking.openURL(url);
-  };
+  }, []);
 
-  const getGreeting = () => {
+  const getGreeting = useCallback(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Bonjour';
     if (hour < 18) return 'Bon après-midi';
     return 'Bonsoir';
-  };
+  }, []);
 
   // Get unique quartiers for filter suggestions
-  const uniqueQuartiers = [...new Set(pharmacies.map(p => p.quartier))];
+  const uniqueQuartiers = useMemo(() => [...new Set(pharmacies.map(p => p.quartier))], [pharmacies]);
 
   return (
     <RNView style={styles.container}>
       <StatusBar style="dark" />
-      <BackgroundShapes variant="home" />
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -192,97 +157,64 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scrollContent}
         >
           {/* Header */}
-          <Animated.View
-            style={[
-              styles.header,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
+          <RNView style={styles.header}>
             <Text style={styles.greeting}>{getGreeting()},</Text>
             <Text style={styles.userName}>
               {profile?.full_name || 'Bienvenue'} 👋
             </Text>
-          </Animated.View>
+          </RNView>
 
           {/* Active Requests Banner */}
           {activeDemandesCount > 0 && (
-            <Animated.View
-              style={{
-                opacity: bannerAnim,
-                transform: [{
-                  translateY: bannerAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-20, 0],
-                  })
-                }],
-              }}
+            <Pressable
+              onPress={() => router.push('/(client)/history')}
+              style={({ pressed }) => [
+                styles.activeBanner,
+                pressed && styles.activeBannerPressed,
+              ]}
             >
-              <Pressable
-                onPress={() => router.push('/(client)/history')}
-                style={({ pressed }) => [
-                  styles.activeBanner,
-                  pressed && styles.activeBannerPressed,
-                ]}
-              >
-                <RNView style={styles.activeBannerIcon}>
-                  <AlertCircle size={20} color={colors.info.primary} />
-                </RNView>
-                <RNView style={styles.activeBannerContent}>
-                  <Text style={styles.activeBannerTitle}>
-                    {activeDemandesCount} demande{activeDemandesCount > 1 ? 's' : ''} en cours
-                  </Text>
-                  <Text style={styles.activeBannerSubtitle}>
-                    Tap pour voir le statut
-                  </Text>
-                </RNView>
+              <RNView style={styles.activeBannerIcon}>
+                <AlertCircle size={20} color={colors.info.primary} />
+              </RNView>
+              <RNView style={styles.activeBannerContent}>
+                <Text style={styles.activeBannerTitle}>
+                  {activeDemandesCount} demande{activeDemandesCount > 1 ? 's' : ''} en cours
+                </Text>
+                <Text style={styles.activeBannerSubtitle}>
+                  Tap pour voir le statut
+                </Text>
+              </RNView>
+              <RNView style={styles.activeBannerIcon}>
                 <ArrowRight size={18} color={colors.info.primary} />
-              </Pressable>
-            </Animated.View>
+              </RNView>
+            </Pressable>
           )}
 
           {/* Hero Search Card */}
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: Animated.multiply(slideAnim, 1.1) }],
-            }}
+          <BentoCard
+            size="2x1"
+            variant="filled"
+            onPress={() => router.push('/(client)/search')}
+            style={styles.searchCard}
           >
-            <BentoCard
-              size="2x1"
-              variant="filled"
-              onPress={() => router.push('/(client)/search')}
-              style={styles.searchCard}
-            >
-              <RNView style={styles.searchCardContent}>
-                <RNView style={styles.searchIconWrapper}>
-                  <Search size={28} color={colors.text.primary} strokeWidth={2.5} />
-                </RNView>
-                <RNView style={styles.searchTextWrapper}>
-                  <Text style={styles.searchTitle}>Chercher un médicament</Text>
-                  <Text style={styles.searchSubtitle}>
-                    Trouvez rapidement dans les pharmacies
-                  </Text>
-                </RNView>
-                <RNView style={styles.searchArrowWrapper}>
-                  <ArrowRight size={24} color={colors.text.primary} />
-                </RNView>
+            <RNView style={styles.searchCardContent}>
+              <RNView style={styles.searchIconWrapper}>
+                <Search size={28} color={colors.text.primary} strokeWidth={2.5} />
               </RNView>
-            </BentoCard>
-          </Animated.View>
+              <RNView style={styles.searchTextWrapper}>
+                <Text style={styles.searchTitle}>Chercher un médicament</Text>
+                <Text style={styles.searchSubtitle}>
+                  Trouvez rapidement dans les pharmacies
+                </Text>
+              </RNView>
+              <RNView style={styles.searchArrowWrapper}>
+                <ArrowRight size={18} color={colors.info.primary} />
+              </RNView>
+            </RNView>
+          </BentoCard>
 
-          {/* Bento Grid - Quick Actions */}
-          <Animated.View
-            style={[
-              styles.bentoGrid,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: Animated.multiply(slideAnim, 1.2) }],
-              },
-            ]}
-          >
+          {/* Quick Actions Grid */}
+          <RNView style={styles.bentoGrid}>
             <BentoCard
               size="1x1"
               variant="elevated"
@@ -315,18 +247,10 @@ export default function HomeScreen() {
               </RNView>
               <Text style={styles.bentoDescription}>Historique</Text>
             </BentoCard>
-          </Animated.View>
+          </RNView>
 
-          {/* Pharmacies de Garde Section */}
-          <Animated.View
-            style={[
-              styles.section,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: Animated.multiply(slideAnim, 1.3) }],
-              },
-            ]}
-          >
+          {/* Pharmacies de garde */}
+          <RNView style={styles.section}>
             <RNView style={styles.sectionHeader}>
               <RNView>
                 <Text style={styles.sectionTitle}>Pharmacies de garde</Text>
@@ -417,7 +341,7 @@ export default function HomeScreen() {
                 ))}
               </RNView>
             )}
-          </Animated.View>
+          </RNView>
 
           {/* Spacer for tab bar */}
           <RNView style={{ height: 120 }} />
