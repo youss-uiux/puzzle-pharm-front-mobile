@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, ClipboardList, User } from 'lucide-react-native';
+import { LayoutDashboard, ClipboardList, User, Building2 } from 'lucide-react-native';
 import { Platform, View, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import {
@@ -79,6 +79,17 @@ export default function AgentLayout() {
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconContainer : undefined}>
               <ClipboardList size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="pharmacies-garde"
+        options={{
+          title: 'Pharmacies',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconContainer : undefined}>
+              <Building2 size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}
