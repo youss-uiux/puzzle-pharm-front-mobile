@@ -13,6 +13,7 @@ import config from '../tamagui.config';
 import { supabase, Profile } from '../lib/supabase';
 import { useColorScheme } from '@/components/useColorScheme';
 import { ToastProvider } from '../components/design-system';
+import AnimatedSplashScreen from '../components/AnimatedSplashScreen';
 
 // Contexte d'authentification
 type AuthContextType = {
@@ -96,6 +97,7 @@ export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -204,6 +206,15 @@ export default function RootLayout() {
   };
 
   useProtectedRoute(session, profile, isLoading);
+
+  // Afficher le splash animé en premier
+  if (showAnimatedSplash) {
+    return (
+      <AnimatedSplashScreen
+        onAnimationFinish={() => setShowAnimatedSplash(false)}
+      />
+    );
+  }
 
   if (!loaded || isLoading) {
     return null;
