@@ -13,9 +13,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Spinner } from 'tamagui';
 import { ArrowLeft, ShieldCheck } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -211,7 +211,7 @@ export default function VerifyScreen() {
               {/* Loading indicator */}
               {loading && (
                 <RNView style={styles.loadingContainer}>
-                  <Spinner size="small" color={colors.accent.primary} />
+                  <ActivityIndicator size="small" color={colors.accent.primary} />
                   <Text style={styles.loadingText}>Vérification...</Text>
                 </RNView>
               )}

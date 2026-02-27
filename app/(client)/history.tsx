@@ -4,8 +4,7 @@
  * Demandes history with filters, best price badge, and relaunch
  */
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { RefreshControl, Linking, StyleSheet, Pressable, Animated, View as RNView, Text, Alert } from 'react-native';
-import { ScrollView, Spinner } from 'tamagui';
+import { RefreshControl, Linking, StyleSheet, Pressable, Animated, View as RNView, Text, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {

@@ -4,28 +4,14 @@
  */
 import React from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { colors, radius, shadows, spacing } from '../../constants/theme';
+import { colors, radius, shadows } from '../../constants/theme';
 
 interface PillTabBarBackgroundProps {
   children?: React.ReactNode;
 }
 
 export const PillTabBarBackground: React.FC<PillTabBarBackgroundProps> = () => {
-  if (Platform.OS === 'ios') {
-    return (
-      <View style={styles.container}>
-        <BlurView intensity={80} tint="light" style={styles.blur}>
-          <View style={styles.overlay} />
-        </BlurView>
-      </View>
-    );
-  }
-
-  // Android fallback with semi-transparent background
-  return (
-    <View style={[styles.container, styles.androidBackground]} />
-  );
+  return <View style={styles.container} />;
 };
 
 // Tab bar style configuration for expo-router Tabs
@@ -74,20 +60,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: radius.pill,
-    overflow: 'hidden',
-  },
-  blur: {
-    flex: 1,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
-  },
-  androidBackground: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.06)',
   },

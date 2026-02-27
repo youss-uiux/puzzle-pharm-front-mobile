@@ -2,8 +2,7 @@
  * Profile Screen - Agent
  * Modern Apothecary Design System
  */
-import { Alert, StyleSheet, Pressable, Animated, View as RNView, Text } from 'react-native';
-import { ScrollView, View } from 'tamagui';
+import { Alert, StyleSheet, Pressable, Animated, View as RNView, Text, ScrollView, View } from 'react-native';
 import {
   Phone,
   LogOut,

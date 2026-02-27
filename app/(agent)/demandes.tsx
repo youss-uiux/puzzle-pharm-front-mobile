@@ -16,9 +16,10 @@ import {
   Pressable,
   TextInput,
   View as RNView,
-  Text
+  Text,
+  ScrollView,
+  ActivityIndicator
 } from 'react-native';
-import { ScrollView, Spinner } from 'tamagui';
 import * as Haptics from 'expo-haptics';
 import {
   Clock,
@@ -413,7 +414,7 @@ export default function DemandesScreen() {
         >
           {loading ? (
             <RNView style={styles.loadingContainer}>
-              <Spinner size="large" color={colors.accent.primary} />
+              <ActivityIndicator size="large" color={colors.accent.primary} />
               <Text style={styles.loadingText}>Chargement...</Text>
             </RNView>
           ) : demandes.length === 0 ? (
@@ -593,7 +594,7 @@ export default function DemandesScreen() {
                     <RNView style={styles.submitButtonInner}>
                       {submitting ? (
                         <>
-                          <Spinner size="small" color={colors.text.primary} />
+                          <ActivityIndicator size="small" color={colors.text.primary} />
                           <Text style={styles.submitButtonText}>Envoi...</Text>
                         </>
                       ) : (

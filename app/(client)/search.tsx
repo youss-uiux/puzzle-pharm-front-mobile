@@ -14,8 +14,9 @@ import {
   TextInput,
   View as RNView,
   Text,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import { ScrollView, Spinner } from 'tamagui';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
@@ -391,7 +392,7 @@ export default function SearchScreen() {
                   <RNView style={styles.submitButtonInner}>
                     {loading ? (
                       <>
-                        <Spinner size="small" color={colors.text.primary} />
+                        <ActivityIndicator size="small" color={colors.text.primary} />
                         <Text style={styles.submitButtonText}>Envoi en cours...</Text>
                       </>
                     ) : (

@@ -15,10 +15,11 @@ import {
   Animated,
   Modal,
   View as RNView,
-  Text
+  Text,
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Spinner, ScrollView } from 'tamagui';
 import { Sparkles, Shield, X } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -244,7 +245,7 @@ export default function LoginScreen() {
             <Text style={styles.loadingEmoji}>💊</Text>
           </RNView>
         </Animated.View>
-        <Spinner size="large" color={colors.accent.primary} />
+        <ActivityIndicator size="large" color={colors.accent.primary} />
       </RNView>
     );
   }
@@ -347,7 +348,7 @@ export default function LoginScreen() {
                   <RNView style={styles.submitButtonInner}>
                     {loading ? (
                       <>
-                        <Spinner size="small" color={colors.text.primary} />
+                        <ActivityIndicator size="small" color={colors.text.primary} />
                         <Text style={styles.submitButtonText}>Connexion...</Text>
                       </>
                     ) : (

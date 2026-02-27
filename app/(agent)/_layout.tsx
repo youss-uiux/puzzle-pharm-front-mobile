@@ -1,7 +1,6 @@
 import { Tabs } from 'expo-router';
 import { LayoutDashboard, ClipboardList, User, Building2 } from 'lucide-react-native';
-import { Platform, View, StyleSheet } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { View, StyleSheet, Platform } from 'react-native';
 import {
   pillTabBarLabelStyle,
   pillTabBarColors,
@@ -10,21 +9,10 @@ import {
   shadows,
 } from '../../components/design-system';
 
-// Custom tab bar background component with glassmorphism
-const TabBarBackground = () => {
-  if (Platform.OS === 'ios') {
-    return (
-      <View style={styles.tabBarContainer}>
-        <BlurView intensity={80} tint="light" style={styles.blur}>
-          <View style={styles.glassOverlay} />
-        </BlurView>
-      </View>
-    );
-  }
-
-  // Android fallback
-  return <View style={[styles.tabBarContainer, styles.androidBackground]} />;
-};
+// Custom tab bar background component - simple semi-transparent fallback
+const TabBarBackground = () => (
+  <View style={styles.tabBarContainer} />
+);
 
 export default function AgentLayout() {
   return (
@@ -117,20 +105,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: radius.pill,
-    overflow: 'hidden',
-  },
-  blur: {
-    flex: 1,
-  },
-  glassOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
-  },
-  androidBackground: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.06)',
   },

@@ -12,8 +12,8 @@ import {
   View as RNView,
   Text,
   TextInput,
+  ScrollView,
 } from 'react-native';
-import { ScrollView } from 'tamagui';
 import * as Haptics from 'expo-haptics';
 import {
   MapPin,

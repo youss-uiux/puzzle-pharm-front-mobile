@@ -4,8 +4,7 @@
  * Bento grid stats with premium card design
  */
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { RefreshControl, StyleSheet, Pressable, View as RNView, Text } from 'react-native';
-import { ScrollView, Spinner } from 'tamagui';
+import { RefreshControl, StyleSheet, Pressable, View as RNView, Text, ScrollView, ActivityIndicator } from 'react-native';
 import {
   Clock,
   CheckCircle,
@@ -188,7 +187,7 @@ export default function DashboardScreen() {
 
           {loading ? (
             <RNView style={styles.loadingContainer}>
-              <Spinner size="large" color={colors.accent.primary} />
+              <ActivityIndicator size="large" color={colors.accent.primary} />
             </RNView>
           ) : (
             <>

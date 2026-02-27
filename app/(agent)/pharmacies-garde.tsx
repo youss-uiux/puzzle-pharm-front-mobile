@@ -17,8 +17,9 @@ import {
   View as RNView,
   Text,
   FlatList,
+  ScrollView,
+  ActivityIndicator
 } from 'react-native';
-import { ScrollView, Spinner } from 'tamagui';
 import * as Haptics from 'expo-haptics';
 import {
   Plus,
@@ -468,7 +469,7 @@ export default function PharmaciesGardeScreen() {
         {/* Liste */}
         {loading ? (
           <RNView style={styles.loadingContainer}>
-            <Spinner size="large" color={colors.accent.primary} />
+            <ActivityIndicator size="large" color={colors.accent.primary} />
             <Text style={styles.loadingText}>Chargement...</Text>
           </RNView>
         ) : (
@@ -588,7 +589,7 @@ export default function PharmaciesGardeScreen() {
             {/* Liste de sélection */}
             {loadingPharmacies ? (
               <RNView style={styles.loadingContainer}>
-                <Spinner size="large" color={colors.accent.primary} />
+                <ActivityIndicator size="large" color={colors.accent.primary} />
               </RNView>
             ) : (
               <FlatList
@@ -614,7 +615,7 @@ export default function PharmaciesGardeScreen() {
                 <RNView style={styles.submitButtonInner}>
                   {submitting ? (
                     <>
-                      <Spinner size="small" color={colors.text.primary} />
+                      <ActivityIndicator size="small" color={colors.text.primary} />
                       <Text style={styles.submitButtonText}>Enregistrement...</Text>
                     </>
                   ) : (

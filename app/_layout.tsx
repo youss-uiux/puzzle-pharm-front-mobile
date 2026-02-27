@@ -6,10 +6,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import 'react-native-reanimated';
-import { TamaguiProvider } from 'tamagui';
 import { Session } from '@supabase/supabase-js';
 
-import config from '../tamagui.config';
 import { supabase, Profile } from '../lib/supabase';
 import { useColorScheme } from '@/components/useColorScheme';
 import { ToastProvider } from '../components/design-system';
@@ -233,30 +231,28 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <TamaguiProvider config={config} defaultTheme={colorScheme ?? 'light'}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        {/* StatusBar sombre pour que l'heure et la batterie soient visibles */}
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="(client)"
-            options={{
-              headerShown: false,
-              // Désactiver le swipe back quand connecté
-              gestureEnabled: false,
-            }}
-          />
-          <Stack.Screen
-            name="(agent)"
-            options={{
-              headerShown: false,
-              // Désactiver le swipe back quand connecté
-              gestureEnabled: false,
-            }}
-          />
-        </Stack>
-      </ThemeProvider>
-    </TamaguiProvider>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      {/* StatusBar sombre pour que l'heure et la batterie soient visibles */}
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(client)"
+          options={{
+            headerShown: false,
+            // Désactiver le swipe back quand connecté
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="(agent)"
+          options={{
+            headerShown: false,
+            // Désactiver le swipe back quand connecté
+            gestureEnabled: false,
+          }}
+        />
+      </Stack>
+    </ThemeProvider>
   );
 }

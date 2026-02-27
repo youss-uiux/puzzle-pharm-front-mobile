@@ -15,9 +15,9 @@ import {
   Platform,
   TouchableWithoutFeedback,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Spinner } from 'tamagui';
 import { User, Sparkles } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -212,7 +212,7 @@ export default function SetupProfileScreen() {
                   <RNView style={styles.submitButtonInner}>
                     {loading ? (
                       <>
-                        <Spinner size="small" color={colors.text.primary} />
+                        <ActivityIndicator size="small" color={colors.text.primary} />
                         <Text style={styles.submitButtonText}>Enregistrement...</Text>
                       </>
                     ) : (
