@@ -98,7 +98,7 @@ Puis :
 - Visualisation des propositions (sans numéros de téléphone)
 
 ### Agent (Pharmacien)
-- Connexion avec code d'accès : `AGENT2024`
+- Connexion avec validation administrateur (via Supabase)
 - Réception des demandes en temps réel
 - **Sélection de pharmacies** depuis la liste officielle (184 pharmacies)
 - Envoi de propositions avec prix
@@ -204,7 +204,7 @@ puzzle-pharm-front-mobile/
 3. Vérification des propositions (sans téléphones)
 
 # En tant qu'Agent
-1. Connexion avec code AGENT2024
+1. Connexion avec validation administrateur
 2. Réception d'une demande
 3. Sélection d'une pharmacie (modal avec 184 pharmacies)
 4. Envoi d'une proposition

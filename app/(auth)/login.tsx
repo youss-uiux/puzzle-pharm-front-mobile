@@ -13,14 +13,13 @@ import {
   Pressable,
   TextInput,
   Animated,
-  Modal,
   View as RNView,
   Text,
   ActivityIndicator,
   ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Sparkles, Shield, X } from 'lucide-react-native';
+import { Sparkles } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -36,15 +35,10 @@ import {
 } from '../../components/design-system';
 import { getErrorMessage } from '../../utils/errors';
 
-// Agent access code (in production, store in Supabase app_settings)
-const AGENT_ACCESS_CODE = 'AGENT2024';
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
-  const [agentModalVisible, setAgentModalVisible] = useState(false);
-  const [agentCode, setAgentCode] = useState('');
-  const [agentCodeError, setAgentCodeError] = useState(false);
   const router = useRouter();
   const { session, profile, isLoading } = useAuth();
   const { showToast } = useToast();
@@ -208,32 +202,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleAgentAccess = async () => {
-    if (agentCode.trim().toUpperCase() !== AGENT_ACCESS_CODE) {
-      setAgentCodeError(true);
-      showToast({
-        type: 'error',
-        title: 'Code invalide',
-        message: 'Le code d\'accès agent est incorrect',
-      });
-      return;
-    }
-
-    // Store that this is an agent registration attempt
-    // This will be used after OTP verification to set role
-    try {
-      // For now, store in local state - in production, use secure storage
-      setAgentModalVisible(false);
-      showToast({
-        type: 'success',
-        title: 'Code accepté',
-        message: 'Entrez votre numéro pour continuer',
-      });
-      // The role will be set during profile setup
-    } catch (error) {
-      console.error('Agent code error:', error);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -358,20 +326,6 @@ export default function LoginScreen() {
                 </Pressable>
               </Animated.View>
 
-              {/* Agent Access Link */}
-              <Animated.View style={[styles.agentLinkContainer, { opacity: fadeAnim }]}>
-                <Pressable
-                  onPress={() => setAgentModalVisible(true)}
-                  style={({ pressed }) => [
-                    styles.agentLink,
-                    pressed && styles.agentLinkPressed,
-                  ]}
-                >
-                  <Shield size={14} color={colors.text.tertiary} />
-                  <Text style={styles.agentLinkText}>Accès Agent</Text>
-                </Pressable>
-              </Animated.View>
-
               {/* Footer */}
               <Animated.View style={[styles.footerContainer, { opacity: fadeAnim }]}>
                 <Text style={styles.footer}>
@@ -383,63 +337,6 @@ export default function LoginScreen() {
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </SafeAreaView>
-
-      {/* Agent Access Modal */}
-      <Modal
-        visible={agentModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAgentModalVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setAgentModalVisible(false)}
-        >
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <RNView style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Accès Agent</Text>
-              <Pressable
-                onPress={() => setAgentModalVisible(false)}
-                style={styles.modalCloseButton}
-              >
-                <X size={20} color={colors.text.tertiary} />
-              </Pressable>
-            </RNView>
-
-            <Text style={styles.modalSubtitle}>
-              Entrez le code d'accès fourni par votre administrateur
-            </Text>
-
-            <RNView style={[
-              styles.agentCodeInput,
-              agentCodeError && styles.agentCodeInputError,
-            ]}>
-              <TextInput
-                style={styles.agentCodeTextInput}
-                placeholder="Code d'accès"
-                placeholderTextColor={colors.text.tertiary}
-                value={agentCode}
-                onChangeText={(text) => {
-                  setAgentCode(text);
-                  setAgentCodeError(false);
-                }}
-                autoCapitalize="characters"
-                selectionColor={colors.accent.primary}
-              />
-            </RNView>
-
-            <Pressable
-              onPress={handleAgentAccess}
-              style={({ pressed }) => [
-                styles.modalButton,
-                pressed && styles.modalButtonPressed,
-              ]}
-            >
-              <Text style={styles.modalButtonText}>Valider</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </RNView>
   );
 }
@@ -626,26 +523,6 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
   },
 
-  // Agent Link
-  agentLinkContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  agentLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  agentLinkPressed: {
-    opacity: 0.6,
-  },
-  agentLinkText: {
-    ...typography.caption,
-    color: colors.text.tertiary,
-  },
-
   // Footer
   footerContainer: {
     alignItems: 'center',
@@ -659,74 +536,5 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.accent.primary,
     fontWeight: '500',
-  },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: radius.card,
-    padding: spacing.lg,
-    width: '100%',
-    maxWidth: 360,
-    ...shadows.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  modalTitle: {
-    ...typography.h3,
-    color: colors.text.primary,
-  },
-  modalCloseButton: {
-    padding: spacing.xs,
-  },
-  modalSubtitle: {
-    ...typography.body,
-    color: colors.text.secondary,
-    marginBottom: spacing.lg,
-  },
-  agentCodeInput: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: radius.button,
-    borderWidth: 2,
-    borderColor: colors.border.light,
-    marginBottom: spacing.lg,
-  },
-  agentCodeInputError: {
-    borderColor: colors.error.primary,
-  },
-  agentCodeTextInput: {
-    height: 52,
-    paddingHorizontal: spacing.md,
-    ...typography.body,
-    color: colors.text.primary,
-    textAlign: 'center',
-    fontWeight: '600',
-    letterSpacing: 2,
-  },
-  modalButton: {
-    backgroundColor: colors.accent.primary,
-    borderRadius: radius.button,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    ...shadows.accent,
-  },
-  modalButtonPressed: {
-    opacity: 0.9,
-  },
-  modalButtonText: {
-    ...typography.label,
-    color: colors.text.primary,
-    fontWeight: '700',
   },
 });
