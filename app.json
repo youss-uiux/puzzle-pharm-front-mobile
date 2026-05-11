@@ -4,12 +4,12 @@
     "slug": "puzzle-pharm-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/puzzle-logo.png",
+    "icon": "./assets/images/puzzle.png",
     "scheme": "puzzlepharmapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/puzzle-logo.png",
+      "image": "./assets/images/splash-puzzle.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -20,7 +20,7 @@
       "package": "com.puzzlepharm.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/puzzle-logo.png",
+        "foregroundImage": "./assets/images/puzzle.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -31,7 +31,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/P-logo.png"
+      "favicon": "./assets/images/puzzle.png"
     },
     "plugins": [
       "expo-router"

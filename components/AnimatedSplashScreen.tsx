@@ -56,7 +56,7 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
         ]}
       >
         <Image
-          source={require('../assets/images/logo-splash-screen.png')}
+          source={require('../assets/images/splash-puzzle.png')}
           style={styles.logo}
           resizeMode="contain"
         />
