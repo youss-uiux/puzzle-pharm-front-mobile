@@ -378,6 +378,7 @@ const styles = StyleSheet.create({
   // Section
   section: {
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xxl,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -388,11 +389,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.h3,
     color: colors.text.primary,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   liveIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     backgroundColor: colors.error.light,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -403,10 +405,13 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.error.primary,
+    marginRight: 6,
   },
   liveText: {
     ...typography.overline,
     color: colors.error.primary,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 
   // Empty
@@ -464,6 +469,8 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.text.primary,
     marginBottom: spacing.xs,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   demandeFooter: {
     flexDirection: 'row',
@@ -473,15 +480,19 @@ const styles = StyleSheet.create({
   clientInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
   },
   clientName: {
     ...typography.caption,
     color: colors.text.tertiary,
+    marginLeft: spacing.xs,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   demandeTime: {
     ...typography.caption,
     color: colors.text.tertiary,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 
   // View all button
@@ -491,7 +502,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.lg,
     marginTop: spacing.md,
-    gap: spacing.xs,
   },
   viewAllButtonPressed: {
     opacity: 0.7,
@@ -499,6 +509,9 @@ const styles = StyleSheet.create({
   viewAllText: {
     ...typography.label,
     color: colors.accent.primary,
+    marginRight: spacing.xs,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
 
