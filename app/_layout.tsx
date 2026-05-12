@@ -103,10 +103,12 @@ export default function RootLayout() {
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (loaded || error) {
+      SplashScreen.hideAsync().catch(() => {
+        // Ignorer l'erreur si le splash est déjà caché
+      });
     }
-  }, [loaded]);
+  }, [loaded, error]);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -175,16 +177,29 @@ export default function RootLayout() {
 
   // Charger la session et le profil
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
+    let mounted = true;
+
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        
+        setSession(session);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('Erreur initialisation auth:', err);
+        if (mounted) setIsLoading(false);
       }
-    });
+    };
+
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
       setSession(session);
       if (session?.user) {
         await fetchProfile(session.user.id);
@@ -194,7 +209,10 @@ export default function RootLayout() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [fetchProfile]);
 
   const signOut = async () => {
