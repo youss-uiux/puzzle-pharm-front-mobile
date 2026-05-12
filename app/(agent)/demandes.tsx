@@ -324,6 +324,7 @@ export default function DemandesScreen() {
     // Confirmation avant envoi
     const confirmMessage = `${validPropositions.length} proposition${validPropositions.length > 1 ? 's' : ''} pour "${selectedDemande.medicament_nom}" — Envoyer ?`;
 
+    //à changer en Modal de confirmation
     Alert.alert(
       'Confirmer l\'envoi',
       confirmMessage,
@@ -524,7 +525,6 @@ export default function DemandesScreen() {
         <RNView style={styles.modalContainer}>
           <SafeAreaView style={styles.modalSafeArea}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 {/* Modal Header */}
                 <RNView style={styles.modalHeader}>
                   <RNView>
@@ -623,7 +623,6 @@ export default function DemandesScreen() {
                     </RNView>
                   </Pressable>
                 </RNView>
-              </KeyboardAvoidingView>
             </TouchableWithoutFeedback>
           </SafeAreaView>
         </RNView>
@@ -631,18 +630,23 @@ export default function DemandesScreen() {
 
       <BottomSheetModal
         ref={bottomSheetModalRef}
-        index={0}
+        index={1}
         snapPoints={snapPoints}
         backdropComponent={renderBackdrop}
         enablePanDownToClose
-        handleIndicatorStyle={{ backgroundColor: colors.border.strong }}
+        handleIndicatorStyle={{ backgroundColor: colors.border.dark}}
       >
         <BottomSheetView style={styles.sheetContent}>
           <RNView style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Propositions envoyées</Text>
-            {selectedDemande && (
-              <Text style={styles.sheetSubtitle}>{selectedDemande.medicament_nom}</Text>
-            )}
+            <RNView>
+              <Text style={styles.sheetTitle}>Propositions envoyées</Text>
+              {selectedDemande && (
+                <Text style={styles.sheetSubtitle}>{selectedDemande.medicament_nom}</Text>
+              )}
+            </RNView>
+            <Pressable onPress={() => bottomSheetModalRef.current?.dismiss()} style={styles.closeButton}>
+              <X size={24} color={colors.text.tertiary} />
+            </Pressable>
           </RNView>
           
           <BottomSheetScrollView 
@@ -724,7 +728,7 @@ const styles = StyleSheet.create({
 
   demandeCard: { backgroundColor: colors.surface.primary, borderRadius: radius.card, marginBottom: spacing.md, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: colors.border.light, ...shadows.sm },
   demandePressable: { opacity: 0.8 },
-  statusIndicator: { width: 4 },
+  statusIndicator: { width: 0 },
   demandeContent: { flex: 1, padding: spacing.lg },
   demandeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   demandeInfo: { flex: 1, marginRight: spacing.md },
@@ -744,8 +748,8 @@ const styles = StyleSheet.create({
 
   // Bottom Sheet
   sheetContent: { flex: 1, backgroundColor: colors.surface.primary },
-  sheetHeader: { padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border.light },
-  sheetTitle: { ...typography.h3, color: colors.text.primary },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border.light },
+  sheetTitle: { ...typography.h4, color: colors.text.primary },
   sheetSubtitle: { ...typography.body, color: colors.accent.primary, marginTop: spacing.xs },
   sheetScrollContent: { padding: spacing.lg },
   emptySheet: { padding: spacing.xxl, alignItems: 'center' },
