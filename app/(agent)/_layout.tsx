@@ -23,7 +23,7 @@ export default function AgentLayout() {
         tabBarInactiveTintColor: pillTabBarColors.inactive,
         tabBarStyle: {
           position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 28 : 20,
+          bottom: Platform.OS === 'ios' ? 28 : 5,
           left: 24,
           right: 24,
           height: 70,
@@ -45,7 +45,7 @@ export default function AgentLayout() {
         },
         tabBarItemStyle: {
           paddingTop: 10,
-          paddingBottom: 10,
+          paddingBottom: 20,
         },
       }}
     >
