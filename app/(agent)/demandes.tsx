@@ -3,7 +3,7 @@
  * Modern Apothecary Design System
  * List and manage medication requests - Pharmacies from database only
  */
-import { useEffect, useState, useCallback, useMemo, memo } from 'react';
+import { useEffect, useState, useCallback, useMemo, memo, useRef } from 'react';
 import {
   RefreshControl,
   Alert,
@@ -38,6 +38,13 @@ import {
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import BottomSheet, { 
+  BottomSheetModal, 
+  BottomSheetModalProvider, 
+  BottomSheetView,
+  BottomSheetScrollView,
+  BottomSheetBackdrop
+} from '@gorhom/bottom-sheet';
 import { supabase, Demande, PharmaciePublic } from '../../lib/supabase';
 import { useAuth } from '../_layout';
 import {
@@ -141,7 +148,28 @@ export default function DemandesScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [filter, setFilter] = useState<'all' | 'en_attente' | 'en_cours' | 'traite'>('en_attente');
-  const [expandedDemande, setExpandedDemande] = useState<string | null>(null);
+
+  // Bottom Sheet references
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['50%', '90%'], []);
+
+  const openPropositionsSheet = useCallback((demande: DemandeWithClient) => {
+    setSelectedDemande(demande);
+    bottomSheetModalRef.current?.present();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.5}
+      />
+    ),
+    []
+  );
 
 
   const fetchDemandes = useCallback(async () => {
@@ -378,7 +406,8 @@ export default function DemandesScreen() {
   ], [demandes]);
 
   return (
-    <RNView style={styles.container}>
+    <BottomSheetModalProvider>
+      <RNView style={styles.container}>
       <StatusBar style="dark" />
 
       <SafeAreaView style={styles.safeArea}>
@@ -427,7 +456,6 @@ export default function DemandesScreen() {
             demandes.map((demande) => {
               const statusConfig = getStatusConfig(demande.status);
               const StatusIcon = statusConfig.icon;
-              const isExpanded = expandedDemande === demande.id;
               const hasPropositions = demande.propositions && demande.propositions.length > 0;
               const isUrgent = (demande as any).is_urgent;
 
@@ -438,7 +466,7 @@ export default function DemandesScreen() {
                     <Pressable
                       onPress={() => {
                         if (demande.status === 'traite' && hasPropositions) {
-                          setExpandedDemande(isExpanded ? null : demande.id);
+                          openPropositionsSheet(demande);
                         } else if (demande.status !== 'traite') {
                           openResponseModal(demande);
                         }
@@ -472,7 +500,7 @@ export default function DemandesScreen() {
                         {demande.status === 'traite' && hasPropositions ? (
                           <RNView style={styles.repondreButton}>
                             <Text style={styles.repondreText}>{demande.propositions!.length} proposition{demande.propositions!.length > 1 ? 's' : ''}</Text>
-                            <ChevronRight size={16} color={colors.accent.primary} style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }} />
+                            <ChevronRight size={16} color={colors.accent.primary} />
                           </RNView>
                         ) : demande.status !== 'traite' ? (
                           <RNView style={styles.repondreButton}>
@@ -482,17 +510,6 @@ export default function DemandesScreen() {
                         ) : null}
                       </RNView>
                     </Pressable>
-
-                    {/* Propositions (demandes traitées) */}
-                    {isExpanded && hasPropositions && (
-                      <RNView style={styles.propositionsContainer}>
-                        <RNView style={styles.propositionsDivider} />
-                        <Text style={styles.propositionsHeader}>Propositions envoyées</Text>
-                        {demande.propositions!.map((prop, index) => (
-                          <PropositionItem key={prop.id} prop={prop} index={index} />
-                        ))}
-                      </RNView>
-                    )}
                   </RNView>
                 </RNView>
               );
@@ -611,7 +628,42 @@ export default function DemandesScreen() {
           </SafeAreaView>
         </RNView>
       </Modal>
-    </RNView>
+
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
+        index={0}
+        snapPoints={snapPoints}
+        backdropComponent={renderBackdrop}
+        enablePanDownToClose
+        handleIndicatorStyle={{ backgroundColor: colors.border.strong }}
+      >
+        <BottomSheetView style={styles.sheetContent}>
+          <RNView style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Propositions envoyées</Text>
+            {selectedDemande && (
+              <Text style={styles.sheetSubtitle}>{selectedDemande.medicament_nom}</Text>
+            )}
+          </RNView>
+          
+          <BottomSheetScrollView 
+            contentContainerStyle={styles.sheetScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {selectedDemande?.propositions && selectedDemande.propositions.length > 0 ? (
+              selectedDemande.propositions.map((prop, index) => (
+                <PropositionItem key={prop.id} prop={prop} index={index} />
+              ))
+            ) : (
+              <RNView style={styles.emptySheet}>
+                <Text style={styles.emptySheetText}>Aucune proposition envoyée</Text>
+              </RNView>
+            )}
+            <RNView style={{ height: 40 }} />
+          </BottomSheetScrollView>
+        </BottomSheetView>
+      </BottomSheetModal>
+      </RNView>
+    </BottomSheetModalProvider>
   );
 }
 
@@ -689,6 +741,15 @@ const styles = StyleSheet.create({
   demandeTime: { ...typography.caption, color: colors.text.tertiary },
   repondreButton: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   repondreText: { ...typography.label, color: colors.accent.primary },
+
+  // Bottom Sheet
+  sheetContent: { flex: 1, backgroundColor: colors.surface.primary },
+  sheetHeader: { padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border.light },
+  sheetTitle: { ...typography.h3, color: colors.text.primary },
+  sheetSubtitle: { ...typography.body, color: colors.accent.primary, marginTop: spacing.xs },
+  sheetScrollContent: { padding: spacing.lg },
+  emptySheet: { padding: spacing.xxl, alignItems: 'center' },
+  emptySheetText: { ...typography.body, color: colors.text.tertiary },
 
   // Modal
   modalContainer: { flex: 1, backgroundColor: colors.surface.primary },

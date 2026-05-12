@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import 'react-native-reanimated';
 import { Session } from '@supabase/supabase-js';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { supabase, Profile } from '../lib/supabase';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -237,11 +238,13 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthContext.Provider value={{ session, profile, isLoading, signOut, refreshProfile }}>
-      <ToastProvider>
-        <RootLayoutNav />
-      </ToastProvider>
-    </AuthContext.Provider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthContext.Provider value={{ session, profile, isLoading, signOut, refreshProfile }}>
+        <ToastProvider>
+          <RootLayoutNav />
+        </ToastProvider>
+      </AuthContext.Provider>
+    </GestureHandlerRootView>
   );
 }
 
