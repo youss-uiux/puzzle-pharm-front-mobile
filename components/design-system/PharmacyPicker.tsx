@@ -3,17 +3,22 @@
  * Sélecteur de pharmacie pour les agents
  * Affiche la liste des pharmacies sans les numéros de téléphone
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Modal,
   Pressable,
   TextInput,
-  FlatList,
   ActivityIndicator,
 } from 'react-native';
+import BottomSheet, {
+  BottomSheetModal,
+  BottomSheetView,
+  BottomSheetFlatList,
+  BottomSheetBackdrop,
+} from '@gorhom/bottom-sheet';
+import * as Haptics from 'expo-haptics';
 import {
   Search,
   X,
@@ -41,7 +46,8 @@ export const PharmacyPicker: React.FC<PharmacyPickerProps> = ({
   error = false,
   disabled = false,
 }) => {
-  const [modalVisible, setModalVisible] = useState(false);
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['60%', '85%'], []);
   const [searchQuery, setSearchQuery] = useState('');
   const { pharmacies, loading, quartiers } = usePharmacies();
   const [selectedQuartier, setSelectedQuartier] = useState<string | null>(null);
@@ -69,10 +75,22 @@ export const PharmacyPicker: React.FC<PharmacyPickerProps> = ({
 
   const handleSelect = (pharmacy: PharmaciePublic) => {
     onSelect(pharmacy);
-    setModalVisible(false);
+    bottomSheetModalRef.current?.dismiss();
     setSearchQuery('');
     setSelectedQuartier(null);
   };
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.5}
+      />
+    ),
+    []
+  );
 
   const renderPharmacyItem = ({ item }: { item: PharmaciePublic }) => {
     const isSelected = selectedPharmacy?.id === item.id;
@@ -117,7 +135,12 @@ export const PharmacyPicker: React.FC<PharmacyPickerProps> = ({
     <>
       {/* Trigger Button */}
       <Pressable
-        onPress={() => !disabled && setModalVisible(true)}
+        onPress={() => {
+          if (!disabled) {
+            bottomSheetModalRef.current?.present();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
+        }}
         disabled={disabled}
         style={({ pressed }) => [
           styles.trigger,
@@ -144,108 +167,109 @@ export const PharmacyPicker: React.FC<PharmacyPickerProps> = ({
         <ChevronDown size={20} color={colors.text.tertiary} />
       </Pressable>
 
-      {/* Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
+      {/* Bottom Sheet */}
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
+        index={0}
+        snapPoints={snapPoints}
+        backdropComponent={renderBackdrop}
+        enablePanDownToClose
+        handleIndicatorStyle={{ backgroundColor: colors.border.dark }}
+        backgroundStyle={{ backgroundColor: colors.surface.primary }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Choisir une pharmacie</Text>
-              <Pressable
-                onPress={() => setModalVisible(false)}
-                style={styles.closeButton}
-              >
-                <X size={24} color={colors.text.primary} />
-              </Pressable>
-            </View>
-
-            {/* Search */}
-            <View style={styles.searchContainer}>
-              <Search size={18} color={colors.text.tertiary} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Rechercher une pharmacie..."
-                placeholderTextColor={colors.text.tertiary}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCorrect={false}
-                selectionColor={colors.accent.primary}
-              />
-              {searchQuery ? (
-                <Pressable onPress={() => setSearchQuery('')}>
-                  <X size={18} color={colors.text.tertiary} />
-                </Pressable>
-              ) : null}
-            </View>
-
-            {/* Quartier Filter */}
-            <View style={styles.quartiersContainer}>
-              <FlatList
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                data={['Tous', ...quartiers]}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => {
-                  const isAll = item === 'Tous';
-                  const isActive = isAll ? !selectedQuartier : selectedQuartier === item;
-
-                  return (
-                    <Pressable
-                      onPress={() => setSelectedQuartier(isAll ? null : item)}
-                      style={[
-                        styles.quartierChip,
-                        isActive && styles.quartierChipActive,
-                      ]}
-                    >
-                      <Text style={[
-                        styles.quartierChipText,
-                        isActive && styles.quartierChipTextActive,
-                      ]}>
-                        {item}
-                      </Text>
-                    </Pressable>
-                  );
-                }}
-                contentContainerStyle={styles.quartiersContent}
-              />
-            </View>
-
-            {/* Results Count */}
-            <Text style={styles.resultsCount}>
-              {filteredPharmacies.length} pharmacie{filteredPharmacies.length > 1 ? 's' : ''}
-            </Text>
-
-            {/* Pharmacies List */}
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.accent.primary} />
-                <Text style={styles.loadingText}>Chargement...</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={filteredPharmacies}
-                keyExtractor={(item) => item.id}
-                renderItem={renderPharmacyItem}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                  <View style={styles.emptyContainer}>
-                    <Building2 size={48} color={colors.text.tertiary} />
-                    <Text style={styles.emptyText}>
-                      Aucune pharmacie trouvée
-                    </Text>
-                  </View>
-                }
-              />
-            )}
+        <View style={styles.modalContent}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Choisir une pharmacie</Text>
+            <Pressable
+              onPress={() => bottomSheetModalRef.current?.dismiss()}
+              style={styles.closeButton}
+            >
+              <X size={24} color={colors.text.primary} />
+            </Pressable>
           </View>
+
+          {/* Search */}
+          <View style={styles.searchContainer}>
+            <Search size={18} color={colors.text.tertiary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Rechercher une pharmacie..."
+              placeholderTextColor={colors.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCorrect={false}
+              selectionColor={colors.accent.primary}
+            />
+            {searchQuery ? (
+              <Pressable onPress={() => setSearchQuery('')}>
+                <X size={18} color={colors.text.tertiary} />
+              </Pressable>
+            ) : null}
+          </View>
+
+          {/* Quartier Filter */}
+          <View style={styles.quartiersContainer}>
+            <BottomSheetFlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={['Tous', ...quartiers]}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => {
+                const isAll = item === 'Tous';
+                const isActive = isAll ? !selectedQuartier : selectedQuartier === item;
+
+                return (
+                  <Pressable
+                    onPress={() => setSelectedQuartier(isAll ? null : item)}
+                    style={[
+                      styles.quartierChip,
+                      isActive && styles.quartierChipActive,
+                    ]}
+                  >
+                    <Text style={[
+                      styles.quartierChipText,
+                      isActive && styles.quartierChipTextActive,
+                    ]}>
+                      {item}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+              contentContainerStyle={styles.quartiersContent}
+            />
+          </View>
+
+          {/* Results Count */}
+          <Text style={styles.resultsCount}>
+            {filteredPharmacies.length} pharmacie{filteredPharmacies.length > 1 ? 's' : ''}
+          </Text>
+
+          {/* Pharmacies List */}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.accent.primary} />
+              <Text style={styles.loadingText}>Chargement...</Text>
+            </View>
+          ) : (
+            <BottomSheetFlatList
+              data={filteredPharmacies}
+              keyExtractor={(item) => item.id}
+              renderItem={renderPharmacyItem}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Building2 size={48} color={colors.text.tertiary} />
+                  <Text style={styles.emptyText}>
+                    Aucune pharmacie trouvée
+                  </Text>
+                </View>
+              }
+            />
+          )}
         </View>
-      </Modal>
+      </BottomSheetModal>
     </>
   );
 };
@@ -303,11 +327,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
+    flex: 1,
     backgroundColor: colors.surface.primary,
     borderTopLeftRadius: radius.card,
     borderTopRightRadius: radius.card,
-    maxHeight: '85%',
-    ...shadows.lg,
+    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',

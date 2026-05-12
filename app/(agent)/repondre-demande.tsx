@@ -38,6 +38,7 @@ import {
   PharmacyPicker,
   useToast,
 } from '../../components/design-system';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 type DemandeWithClient = Demande & {
   profiles: {
@@ -255,120 +256,122 @@ export default function RepondreDemandeScreen() {
   }
 
   return (
-    <RNView style={styles.container}>
-      <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <RNView style={styles.header}>
-            <Pressable onPress={() => router.navigate('/(agent)/demandes')} style={styles.backButton}>
-              <ArrowLeft size={24} color={colors.text.primary} />
-            </Pressable>
-            <RNView style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>Résoudre la demande</Text>
-              <Text style={styles.headerSubtitle} numberOfLines={1}>{demande?.medicament_nom}</Text>
-            </RNView>
-          </RNView>
-
-          <ScrollView 
-            style={styles.content} 
-            keyboardShouldPersistTaps="handled" 
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+    <BottomSheetModalProvider>
+      <RNView style={styles.container}>
+        <StatusBar style="dark" />
+        <SafeAreaView style={styles.safeArea}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
-            <RNView style={styles.infoCard}>
-              <Sparkles size={18} color={colors.accent.primary} />
-              <Text style={styles.infoText}>Sélectionnez les pharmacies où le médicament est disponible et indiquez le prix.</Text>
+            <RNView style={styles.header}>
+              <Pressable onPress={() => router.navigate('/(agent)/demandes')} style={styles.backButton}>
+                <ArrowLeft size={24} color={colors.text.primary} />
+              </Pressable>
+              <RNView style={styles.headerTitleContainer}>
+                <Text style={styles.headerTitle}>Résoudre la demande</Text>
+                <Text style={styles.headerSubtitle} numberOfLines={1}>{demande?.medicament_nom}</Text>
+              </RNView>
             </RNView>
 
-            {propositions.map((prop, index) => (
-              <RNView key={index} style={styles.propositionCard}>
-                <RNView style={styles.propositionHeader}>
-                  <RNView style={styles.propositionNumber}>
-                    <Text style={styles.propositionNumberText}>{index + 1}</Text>
+            <ScrollView 
+              style={styles.content} 
+              keyboardShouldPersistTaps="handled" 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              <RNView style={styles.infoCard}>
+                <Sparkles size={18} color={colors.accent.primary} />
+                <Text style={styles.infoText}>Sélectionnez les pharmacies où le médicament est disponible et indiquez le prix.</Text>
+              </RNView>
+
+              {propositions.map((prop, index) => (
+                <RNView key={index} style={styles.propositionCard}>
+                  <RNView style={styles.propositionHeader}>
+                    <RNView style={styles.propositionNumber}>
+                      <Text style={styles.propositionNumberText}>{index + 1}</Text>
+                    </RNView>
+                    <Text style={styles.propositionTitle}>Pharmacie</Text>
+                    {propositions.length > 1 && (
+                      <Pressable onPress={() => removeProposition(index)} style={styles.deleteButton}>
+                        <Trash2 size={18} color={colors.error.primary} />
+                      </Pressable>
+                    )}
                   </RNView>
-                  <Text style={styles.propositionTitle}>Pharmacie</Text>
-                  {propositions.length > 1 && (
-                    <Pressable onPress={() => removeProposition(index)} style={styles.deleteButton}>
-                      <Trash2 size={18} color={colors.error.primary} />
-                    </Pressable>
+
+                  <RNView style={styles.formGroup}>
+                    <Text style={styles.label}>Pharmacie <Text style={styles.required}>*</Text></Text>
+                    <PharmacyPicker
+                      selectedPharmacy={prop.pharmacie}
+                      onSelect={(pharmacy) => updatePropositionPharmacy(index, pharmacy)}
+                      placeholder="Sélectionner une pharmacie"
+                      error={false}
+                    />
+                  </RNView>
+
+                  <RNView style={styles.formGroup}>
+                    <Text style={styles.label}>Prix (FCFA) <Text style={styles.required}>*</Text></Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ex: 2500"
+                      placeholderTextColor={colors.text.tertiary}
+                      value={prop.prix}
+                      onChangeText={(v) => updatePropositionPrice(index, v)}
+                      keyboardType="numeric"
+                      selectionColor={colors.accent.primary}
+                    />
+                  </RNView>
+
+                  {prop.pharmacie && (
+                    <RNView style={styles.selectedPharmacyInfo}>
+                      <MapPin size={14} color={colors.text.tertiary} />
+                      <Text style={styles.selectedPharmacyQuartier}>{prop.pharmacie.quartier}</Text>
+                    </RNView>
                   )}
                 </RNView>
+              ))}
 
-                <RNView style={styles.formGroup}>
-                  <Text style={styles.label}>Pharmacie <Text style={styles.required}>*</Text></Text>
-                  <PharmacyPicker
-                    selectedPharmacy={prop.pharmacie}
-                    onSelect={(pharmacy) => updatePropositionPharmacy(index, pharmacy)}
-                    placeholder="Sélectionner une pharmacie"
-                    error={false}
-                  />
+              <Pressable onPress={addProposition} style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}>
+                <Plus size={20} color={colors.accent.primary} />
+                <Text style={styles.addButtonText}>Ajouter une pharmacie</Text>
+              </Pressable>
+
+              <Pressable onPress={markAsUnavailable} disabled={submitting} style={({ pressed }) => [styles.unavailableButton, pressed && styles.unavailableButtonPressed]}>
+                <Ban size={18} color={colors.error.primary} />
+                <Text style={styles.unavailableButtonText}>Médicament non disponible</Text>
+              </Pressable>
+            </ScrollView>
+
+            <RNView style={styles.footer}>
+              <Pressable 
+                onPress={submitPropositions} 
+                disabled={submitting} 
+                style={({ pressed }) => [
+                  styles.submitButton, 
+                  pressed && !submitting && styles.submitButtonPressed, 
+                  submitting && styles.submitButtonDisabled
+                ]}
+              >
+                <RNView style={styles.submitButtonInner}>
+                  {submitting ? (
+                    <>
+                      <ActivityIndicator size="small" color={colors.text.primary} />
+                      <Text style={styles.submitButtonText}>Envoi...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={20} color={colors.text.primary} />
+                      <Text style={styles.submitButtonText}>Envoyer au client</Text>
+                    </>
+                  )}
                 </RNView>
-
-                <RNView style={styles.formGroup}>
-                  <Text style={styles.label}>Prix (FCFA) <Text style={styles.required}>*</Text></Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ex: 2500"
-                    placeholderTextColor={colors.text.tertiary}
-                    value={prop.prix}
-                    onChangeText={(v) => updatePropositionPrice(index, v)}
-                    keyboardType="numeric"
-                    selectionColor={colors.accent.primary}
-                  />
-                </RNView>
-
-                {prop.pharmacie && (
-                  <RNView style={styles.selectedPharmacyInfo}>
-                    <MapPin size={14} color={colors.text.tertiary} />
-                    <Text style={styles.selectedPharmacyQuartier}>{prop.pharmacie.quartier}</Text>
-                  </RNView>
-                )}
-              </RNView>
-            ))}
-
-            <Pressable onPress={addProposition} style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}>
-              <Plus size={20} color={colors.accent.primary} />
-              <Text style={styles.addButtonText}>Ajouter une pharmacie</Text>
-            </Pressable>
-
-            <Pressable onPress={markAsUnavailable} disabled={submitting} style={({ pressed }) => [styles.unavailableButton, pressed && styles.unavailableButtonPressed]}>
-              <Ban size={18} color={colors.error.primary} />
-              <Text style={styles.unavailableButtonText}>Médicament non disponible</Text>
-            </Pressable>
-          </ScrollView>
-
-          <RNView style={styles.footer}>
-            <Pressable 
-              onPress={submitPropositions} 
-              disabled={submitting} 
-              style={({ pressed }) => [
-                styles.submitButton, 
-                pressed && !submitting && styles.submitButtonPressed, 
-                submitting && styles.submitButtonDisabled
-              ]}
-            >
-              <RNView style={styles.submitButtonInner}>
-                {submitting ? (
-                  <>
-                    <ActivityIndicator size="small" color={colors.text.primary} />
-                    <Text style={styles.submitButtonText}>Envoi...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Send size={20} color={colors.text.primary} />
-                    <Text style={styles.submitButtonText}>Envoyer au client</Text>
-                  </>
-                )}
-              </RNView>
-            </Pressable>
-          </RNView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </RNView>
+              </Pressable>
+            </RNView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </RNView>
+    </BottomSheetModalProvider>
   );
 }
 
