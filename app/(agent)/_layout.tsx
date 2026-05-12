@@ -93,6 +93,13 @@ export default function AgentLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="repondre-demande"
+        options={{
+          href: null,
+          tabBarStyle: { display: 'none' }
+        }}
+      />
     </Tabs>
   );
 }

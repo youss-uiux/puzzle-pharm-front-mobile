@@ -4,17 +4,13 @@
  * List and manage medication requests - Pharmacies from database only
  */
 import { useEffect, useState, useCallback, useMemo, memo, useRef } from 'react';
+import { useRouter } from 'expo-router';
 import {
   RefreshControl,
   Alert,
-  Modal,
-  KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
   StyleSheet,
   Pressable,
-  TextInput,
   View as RNView,
   Text,
   ScrollView,
@@ -138,15 +134,13 @@ const PropositionItem = memo(({
 ));
 
 export default function DemandesScreen() {
+  const router = useRouter();
   const { session } = useAuth();
   const { showToast } = useToast();
   const [demandes, setDemandes] = useState<DemandeWithClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDemande, setSelectedDemande] = useState<DemandeWithClient | null>(null);
-  const [propositions, setPropositions] = useState<PropositionForm[]>([{ ...emptyProposition }]);
-  const [submitting, setSubmitting] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
   const [filter, setFilter] = useState<'all' | 'en_attente' | 'en_cours' | 'traite'>('en_attente');
 
   // Bottom Sheet references
@@ -216,167 +210,12 @@ export default function DemandesScreen() {
     fetchDemandes();
   };
 
-  const openResponseModal = async (demande: DemandeWithClient) => {
-    setSelectedDemande(demande);
-    setPropositions([{ ...emptyProposition }]);
-    setModalVisible(true);
-    if (demande.status === 'en_attente') {
-      await (supabase.from('demandes') as any).update({ status: 'en_cours', agent_id: session?.user.id }).eq('id', demande.id);
-    }
-  };
-
-  const closeModal = useCallback(() => {
-    setModalVisible(false);
-    setSelectedDemande(null);
-    setPropositions([{ ...emptyProposition }]);
-  }, []);
-
-  const addProposition = useCallback(() => {
-    setPropositions([...propositions, { ...emptyProposition }]);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [propositions]);
-
-  const removeProposition = useCallback((index: number) => {
-    if (propositions.length > 1) {
-      setPropositions(propositions.filter((_, i) => i !== index));
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [propositions]);
-
-  const updatePropositionPharmacy = useCallback((index: number, pharmacy: PharmaciePublic) => {
-    const updated = [...propositions];
-    updated[index].pharmacie = pharmacy;
-    setPropositions(updated);
-  }, [propositions]);
-
-  const updatePropositionPrice = useCallback((index: number, prix: string) => {
-    const updated = [...propositions];
-    updated[index].prix = prix;
-    setPropositions(updated);
-  }, [propositions]);
-
-  // Marquer comme non disponible
-  const markAsUnavailable = async () => {
-    if (!selectedDemande) return;
-
-    Alert.alert(
-      'Médicament non disponible',
-      'Confirmer que ce médicament n\'est pas disponible dans les pharmacies partenaires ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Confirmer',
-          style: 'destructive',
-          onPress: async () => {
-            setSubmitting(true);
-            try {
-              // Créer une proposition "Non disponible"
-              const { error: propError } = await (supabase.from('propositions') as any).insert({
-                demande_id: selectedDemande.id,
-                pharmacie_nom: 'Non disponible',
-                prix: 0,
-                quartier: '-',
-                disponible: false,
-              });
-              if (propError) throw propError;
-
-              const { error: updateError } = await (supabase.from('demandes') as any)
-                .update({ status: 'traite' })
-                .eq('id', selectedDemande.id);
-              if (updateError) throw updateError;
-
-              showToast({
-                type: 'info',
-                title: 'Demande traitée',
-                message: 'Le client a été informé de l\'indisponibilité',
-              });
-              closeModal();
-              fetchDemandes();
-            } catch (error: any) {
-              showToast({
-                type: 'error',
-                title: 'Erreur',
-                message: error.message || 'Impossible de traiter la demande',
-              });
-            } finally {
-              setSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const submitPropositions = async () => {
-    if (!selectedDemande) return;
-
-    const validPropositions = propositions.filter(p => p.pharmacie && p.prix.trim());
-
-    if (validPropositions.length === 0) {
-      showToast({
-        type: 'error',
-        title: 'Erreur',
-        message: 'Veuillez ajouter au moins une proposition valide',
-      });
-      return;
-    }
-
-    // Confirmation avant envoi
-    const confirmMessage = `${validPropositions.length} proposition${validPropositions.length > 1 ? 's' : ''} pour "${selectedDemande.medicament_nom}" — Envoyer ?`;
-
-    //à changer en Modal de confirmation
-    Alert.alert(
-      'Confirmer l\'envoi',
-      confirmMessage,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Envoyer',
-          onPress: async () => {
-            Keyboard.dismiss();
-            setSubmitting(true);
-            try {
-              const { error: propError } = await (supabase.from('propositions') as any).insert(
-                validPropositions.map(p => ({
-                  demande_id: selectedDemande.id,
-                  pharmacie_id: p.pharmacie!.id,
-                  pharmacie_nom: p.pharmacie!.nom,
-                  prix: parseFloat(p.prix),
-                  quartier: p.pharmacie!.quartier,
-                  adresse: null, // L'adresse sera récupérée depuis la table pharmacies si besoin
-                  telephone: null, // Ne pas exposer le téléphone au client
-                  disponible: true,
-                }))
-              );
-              if (propError) throw propError;
-
-              const { error: updateError } = await (supabase.from('demandes') as any)
-                .update({ status: 'traite' })
-                .eq('id', selectedDemande.id);
-              if (updateError) throw updateError;
-
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              showToast({
-                type: 'success',
-                title: 'Envoyé !',
-                message: 'Propositions envoyées au client',
-              });
-              closeModal();
-              fetchDemandes();
-            } catch (error: any) {
-              showToast({
-                type: 'error',
-                title: 'Erreur',
-                message: error.message || 'Impossible d\'envoyer les propositions',
-              });
-            } finally {
-              setSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
-  };
+  const openResponsePage = useCallback((demande: DemandeWithClient) => {
+    router.push({
+      pathname: '/(agent)/repondre-demande',
+      params: { id: demande.id }
+    });
+  }, [router]);
 
   const getStatusConfig = useCallback((status: string) => {
     switch (status) {
@@ -469,7 +308,7 @@ export default function DemandesScreen() {
                         if (demande.status === 'traite' && hasPropositions) {
                           openPropositionsSheet(demande);
                         } else if (demande.status !== 'traite') {
-                          openResponseModal(demande);
+                          openResponsePage(demande);
                         }
                       }}
                       style={({ pressed }) => [pressed && styles.demandePressable]}
@@ -505,7 +344,7 @@ export default function DemandesScreen() {
                           </RNView>
                         ) : demande.status !== 'traite' ? (
                           <RNView style={styles.repondreButton}>
-                            <Text style={styles.repondreText}>Répondre</Text>
+                            <Text style={styles.repondreText}>Résoudre la demande</Text>
                             <ChevronRight size={16} color={colors.accent.primary} />
                           </RNView>
                         ) : null}
@@ -520,113 +359,6 @@ export default function DemandesScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* Modal de réponse */}
-      <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeModal}>
-        <RNView style={styles.modalContainer}>
-          <SafeAreaView style={styles.modalSafeArea}>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                {/* Modal Header */}
-                <RNView style={styles.modalHeader}>
-                  <RNView>
-                    <Text style={styles.modalTitle}>Répondre à la demande</Text>
-                    <Text style={styles.modalSubtitle}>{selectedDemande?.medicament_nom}</Text>
-                  </RNView>
-                  <Pressable onPress={closeModal} style={styles.closeButton}><X size={24} color={colors.text.tertiary} /></Pressable>
-                </RNView>
-
-                {/* Modal Content */}
-                <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-                  {/* Info */}
-                  <RNView style={styles.infoCard}>
-                    <Sparkles size={18} color={colors.accent.primary} />
-                    <Text style={styles.infoText}>Sélectionnez les pharmacies où le médicament est disponible et indiquez le prix.</Text>
-                  </RNView>
-
-                  {/* Propositions */}
-                  {propositions.map((prop, index) => (
-                    <RNView key={index} style={styles.propositionCard}>
-                      <RNView style={styles.propositionHeaderModal}>
-                        <RNView style={styles.propositionNumber}>
-                          <Text style={styles.propositionNumberText}>{index + 1}</Text>
-                        </RNView>
-                        <Text style={styles.propositionTitle}>Pharmacie</Text>
-                        {propositions.length > 1 && (
-                          <Pressable onPress={() => removeProposition(index)} style={styles.deleteButton}>
-                            <Trash2 size={18} color={colors.error.primary} />
-                          </Pressable>
-                        )}
-                      </RNView>
-
-                      {/* Sélecteur de pharmacie */}
-                      <RNView style={styles.formGroup}>
-                        <Text style={styles.label}>Pharmacie <Text style={styles.required}>*</Text></Text>
-                        <PharmacyPicker
-                          selectedPharmacy={prop.pharmacie}
-                          onSelect={(pharmacy) => updatePropositionPharmacy(index, pharmacy)}
-                          placeholder="Sélectionner une pharmacie"
-                          error={false}
-                        />
-                      </RNView>
-
-                      {/* Prix */}
-                      <RNView style={styles.formGroup}>
-                        <Text style={styles.label}>Prix (FCFA) <Text style={styles.required}>*</Text></Text>
-                        <TextInput
-                          style={styles.input}
-                          placeholder="Ex: 2500"
-                          placeholderTextColor={colors.text.tertiary}
-                          value={prop.prix}
-                          onChangeText={(v) => updatePropositionPrice(index, v)}
-                          keyboardType="numeric"
-                          selectionColor={colors.accent.primary}
-                        />
-                      </RNView>
-
-                      {/* Afficher le quartier si pharmacie sélectionnée */}
-                      {prop.pharmacie && (
-                        <RNView style={styles.selectedPharmacyInfo}>
-                          <MapPin size={14} color={colors.text.tertiary} />
-                          <Text style={styles.selectedPharmacyQuartier}>{prop.pharmacie.quartier}</Text>
-                        </RNView>
-                      )}
-                    </RNView>
-                  ))}
-
-                  {/* Bouton ajouter */}
-                  <Pressable onPress={addProposition} style={({ pressed }) => [styles.addButton, pressed && styles.addButtonPressed]}>
-                    <Plus size={20} color={colors.accent.primary} />
-                    <Text style={styles.addButtonText}>Ajouter une pharmacie</Text>
-                  </Pressable>
-
-                  {/* Bouton Non disponible */}
-                  <Pressable onPress={markAsUnavailable} disabled={submitting} style={({ pressed }) => [styles.unavailableButton, pressed && styles.unavailableButtonPressed]}>
-                    <Ban size={18} color={colors.error.primary} />
-                    <Text style={styles.unavailableButtonText}>Médicament non disponible</Text>
-                  </Pressable>
-                </ScrollView>
-
-                {/* Modal Footer */}
-                <RNView style={styles.modalFooter}>
-                  <Pressable onPress={submitPropositions} disabled={submitting} style={({ pressed }) => [styles.submitButton, pressed && !submitting && styles.submitButtonPressed, submitting && styles.submitButtonDisabled]}>
-                    <RNView style={styles.submitButtonInner}>
-                      {submitting ? (
-                        <>
-                          <ActivityIndicator size="small" color={colors.text.primary} />
-                          <Text style={styles.submitButtonText}>Envoi...</Text>
-                        </>
-                      ) : (
-                        <>
-                          <Send size={20} color={colors.text.primary} />
-                          <Text style={styles.submitButtonText}>Envoyer au client</Text>
-                        </>
-                      )}
-                    </RNView>
-                  </Pressable>
-                </RNView>
-            </TouchableWithoutFeedback>
-          </SafeAreaView>
-        </RNView>
-      </Modal>
 
       <BottomSheetModal
         ref={bottomSheetModalRef}
